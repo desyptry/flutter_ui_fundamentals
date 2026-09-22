@@ -23,7 +23,6 @@ class MyApp extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Widget CircleAvatar (Foto/Ikon Profil)
               const CircleAvatar(
                 radius: 46,
                 backgroundColor: Colors.blueAccent,
@@ -34,22 +33,15 @@ class MyApp extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Nama Mahasiswa
               Text(
                 studentName,
                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-
-              // NIM Mahasiswa
               Text(
                 studentId,
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
-
               const SizedBox(height: 8),
-
-              // Baris Icon + Deskripsi
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
