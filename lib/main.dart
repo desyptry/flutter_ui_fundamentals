@@ -23,14 +23,11 @@ class MyApp extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ==== Profil Mahasiswa (dari Tahap 5) ====
               const CircleAvatar(
                 radius: 46,
                 backgroundColor: Colors.blueAccent,
-                child: Icon(
-                  Icons.person,
-                  size: 52,
-                  color: Colors.white,
-                ),
+                child: Icon(Icons.person, size: 52, color: Colors.white),
               ),
               const SizedBox(height: 12),
               Text(
@@ -48,6 +45,43 @@ class MyApp extends StatelessWidget {
                   Icon(Icons.phone_android, color: Colors.blue),
                   SizedBox(width: 8),
                   Text('Mobile Programming Student'),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // ==== Bagian Statistik (Tahap 6) ====
+              const Text(
+                'Statistik Belajar',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              // Row dengan 3 item statistik
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: const [
+                  // Item 1: Widget
+                  Column(
+                    children: [
+                      Text('8', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text('Widget'),
+                    ],
+                  ),
+                  // Item 2: Layout
+                  Column(
+                    children: [
+                      Text('4', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text('Layout'),
+                    ],
+                  ),
+                  // Item 3: State
+                  Column(
+                    children: [
+                      Text('1', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text('State'),
+                    ],
+                  ),
                 ],
               ),
             ],
