@@ -1,4 +1,4 @@
-// Tahap 7: Spacing, Container, Card, dan Styling
+// Tahap 8: Reusable Widget
 import 'package:flutter/material.dart';
 
 // Identitas Mahasiswa (WAJIB TAMPIL)
@@ -28,92 +28,11 @@ class MyApp extends StatelessWidget {
             child: Column(
               children: [
                 // ===== Kartu Profil =====
-                Card(
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        const CircleAvatar(
-                          radius: 46,
-                          backgroundColor: Colors.blueAccent,
-                          child: Icon(Icons.person, size: 52, color: Colors.white),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          studentName,
-                          style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          studentId,
-                          style: const TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.phone_android, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text('Mobile Programming Student'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
+                _buildProfileCard(),
                 const SizedBox(height: 16),
 
-                // ===== Kartu Statistik =====
-                Card(
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Statistik Belajar',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: const [
-                            Column(children: [
-                              Text('8',
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold)),
-                              Text('Widget'),
-                            ]),
-                            Column(children: [
-                              Text('4',
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold)),
-                              Text('Layout'),
-                            ]),
-                            Column(children: [
-                              Text('1',
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold)),
-                              Text('State'),
-                            ]),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // ===== Kartu Statistik (pakai reusable widget) =====
+                _buildStatistikCard(),
               ],
             ),
           ),
@@ -121,4 +40,94 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+
+  // ===== Reusable Widget: Kartu Profil =====
+  Widget _buildProfileCard() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const CircleAvatar(
+              radius: 46,
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.person, size: 52, color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              studentName,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              studentId,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.phone_android, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Mobile Programming Student'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===== Reusable Widget: Kartu Statistik =====
+  Widget _buildStatistikCard() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text(
+              'Statistik Belajar',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Menggunakan reusable widget buildStatCard (3x)
+                buildStatCard('8', 'Widget', Icons.widgets),
+                buildStatCard('4', 'Layout', Icons.view_quilt),
+                buildStatCard('1', 'State', Icons.sync),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===== Reusable Function (dari worksheet) =====
+Widget buildStatCard(String value, String label, IconData icon) {
+  return Expanded(
+    child: Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.blue),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Text(label),
+          ],
+        ),
+      ),
+    ),
+  );
 }
