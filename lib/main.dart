@@ -1,4 +1,4 @@
-// Tahap 8: Reusable Widget
+// Tahap 9: Input dan State
 import 'package:flutter/material.dart';
 
 // Identitas Mahasiswa (WAJIB TAMPIL)
@@ -27,12 +27,12 @@ class MyApp extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // ===== Kartu Profil =====
                 _buildProfileCard(),
                 const SizedBox(height: 16),
-
-                // ===== Kartu Statistik (pakai reusable widget) =====
                 _buildStatistikCard(),
+                const SizedBox(height: 16),
+                // ===== Tahap 9: Widget Interaktif =====
+                const GreetingCard(),
               ],
             ),
           ),
@@ -96,7 +96,6 @@ class MyApp extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Menggunakan reusable widget buildStatCard (3x)
                 buildStatCard('8', 'Widget', Icons.widgets),
                 buildStatCard('4', 'Layout', Icons.view_quilt),
                 buildStatCard('1', 'State', Icons.sync),
@@ -109,7 +108,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ===== Reusable Function (dari worksheet) =====
+// ===== Reusable Function =====
 Widget buildStatCard(String value, String label, IconData icon) {
   return Expanded(
     child: Card(
@@ -130,4 +129,71 @@ Widget buildStatCard(String value, String label, IconData icon) {
       ),
     ),
   );
+}
+
+// ===== StatefulWidget: GreetingCard (Tahap 9) =====
+class GreetingCard extends StatefulWidget {
+  const GreetingCard({super.key});
+
+  @override
+  State<GreetingCard> createState() => _GreetingCardState();
+}
+
+class _GreetingCardState extends State<GreetingCard> {
+  final TextEditingController controller = TextEditingController();
+  String message = 'Belum ada pesan';
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Latihan Interaksi',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '$studentId - $studentName',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Tulis pesan...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  final text = controller.text.trim();
+                  message = text.isEmpty ? 'Input masih kosong' : text;
+                });
+              },
+              child: const Text('Tampilkan'),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
