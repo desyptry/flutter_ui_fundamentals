@@ -1,0 +1,40 @@
+{
+  "student": {
+    "name": "Desy_Putri",
+    "nim": "2415051002",
+    "photo": "",
+    "program": "Mobile Programming Student"
+  },
+  "courses": [
+    {
+      "title": "Git & GitHub",
+      "code": "GIT101",
+      "credits": 2,
+      "status": "Selesai"
+    },
+    {
+      "title": "Dart Fundamentals",
+      "code": "DART101",
+      "credits": 3,
+      "status": "Selesai"
+    },
+    {
+      "title": "Flutter UI Fundamentals",
+      "code": "FLUT101",
+      "credits": 3,
+      "status": "Berjalan"
+    },
+    {
+      "title": "Layout & Widget Lanjutan",
+      "code": "FLUT102",
+      "credits": 3,
+      "status": "Berjalan"
+    },
+    {
+      "title": "JSON & Async Programming",
+      "code": "FLUT103",
+      "credits": 2,
+      "status": "Belum"
+    }
+  ]
+}
