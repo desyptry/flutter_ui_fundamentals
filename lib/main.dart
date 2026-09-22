@@ -23,14 +23,41 @@ class MyApp extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '$studentId - $studentName',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // Widget CircleAvatar (Foto/Ikon Profil)
+              const CircleAvatar(
+                radius: 46,
+                backgroundColor: Colors.blueAccent,
+                child: Icon(
+                  Icons.person,
+                  size: 52,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 12),
-              const Icon(Icons.school, size: 48, color: Colors.blue),
-              const SizedBox(height: 12),
-              const Text('Latihan Widget Tree'),
+
+              // Nama Mahasiswa
+              Text(
+                studentName,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+
+              // NIM Mahasiswa
+              Text(
+                studentId,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Baris Icon + Deskripsi
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.phone_android, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Mobile Programming Student'),
+                ],
+              ),
             ],
           ),
         ),
