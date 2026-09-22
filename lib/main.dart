@@ -14,16 +14,24 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Menghilangkan pita merah "DEBUG"
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
           title: const Text('Flutter UI Fundamentals'),
         ),
         body: Center(
-          child: Text(
-            '$studentId\n$studentName',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$studentId - $studentName',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Icon(Icons.school, size: 48, color: Colors.blue),
+              const SizedBox(height: 12),
+              const Text('Latihan Widget Tree'),
+            ],
           ),
         ),
       ),
