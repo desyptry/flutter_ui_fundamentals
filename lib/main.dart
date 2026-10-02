@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 2: MediaQuery
+// Pertemuan 5 - Tahap 3: LayoutBuilder & Breakpoint
 import 'package:flutter/material.dart';
 
 const String studentName = 'Desy_Putri';
@@ -17,98 +17,125 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Tahap 2 - MediaQuery'),
+          title: const Text('Tahap 3 - LayoutBuilder'),
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // ===== Baca ukuran layar dengan MediaQuery =====
-                Builder(
-                  builder: (context) {
-                    final size = MediaQuery.of(context).size;
-                    final orientation = MediaQuery.of(context).orientation;
-                    final isCompact = size.width < 600;
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // ===== Breakpoint =====
+            if (constraints.maxWidth < 600) {
+              return const CompactLayout();
+            } else if (constraints.maxWidth < 840) {
+              return const MediumLayout();
+            } else {
+              return const ExpandedLayout();
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
 
-                    return Column(
-                      children: [
-                        // Identitas
-                        Text(
-                          '$studentId - $studentName',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
+// ===== Layout Compact (< 600px) =====
+class CompactLayout extends StatelessWidget {
+  const CompactLayout({super.key});
 
-                        // Info layar
-                        Card(
-                          elevation: 3,
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.phone_android,
-                                    size: 40, color: Colors.blue),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Width: ${size.width.toStringAsFixed(0)} px',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Height: ${size.height.toStringAsFixed(0)} px',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Orientation: $orientation',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 16),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isCompact
-                                        ? Colors.green.shade100
-                                        : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    isCompact ? 'Compact' : 'Wide',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: isCompact
-                                          ? Colors.green.shade800
-                                          : Colors.orange.shade800,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Putar layar (portrait ↔ landscape) untuk melihat perubahan.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.phone_android, size: 60, color: Colors.green),
+            const SizedBox(height: 16),
+            const Text(
+              'Compact Layout',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
             ),
-          ),
+            const SizedBox(height: 8),
+            const Text('(< 600px) - Smartphone'),
+            const SizedBox(height: 24),
+            Text('$studentId - $studentName',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===== Layout Medium (600-839px) =====
+class MediumLayout extends StatelessWidget {
+  const MediumLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.tablet_android, size: 80, color: Colors.orange),
+            const SizedBox(height: 16),
+            const Text(
+              'Medium Layout',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.orange),
+            ),
+            const SizedBox(height: 8),
+            const Text('(600-839px) - Tablet Portrait'),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text('$studentId - $studentName',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===== Layout Expanded (>= 840px) =====
+class ExpandedLayout extends StatelessWidget {
+  const ExpandedLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.desktop_windows, size: 100, color: Colors.purple),
+            const SizedBox(height: 16),
+            const Text(
+              'Expanded Layout',
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.purple),
+            ),
+            const SizedBox(height: 8),
+            const Text('(≥ 840px) - Tablet/Laptop/Desktop'),
+            const SizedBox(height: 24),
+            Card(
+              elevation: 5,
+              color: Colors.purple.shade100,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text('$studentId - $studentName',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
+          ],
         ),
       ),
     );
