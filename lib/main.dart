@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 13: Form Input & Validasi
+// Pertemuan 5 - Tahap 15: Course Explorer (Integrasi Final)
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -10,6 +10,7 @@ void main() {
   runApp(const MyApp());
 }
 
+// ===== Pembaca JSON =====
 Future<Map<String, dynamic>> loadStudentData() async {
   final jsonString =
       await rootBundle.loadString('assets/data/students_data.json');
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Course Explorer',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
       home: const AdaptiveShell(),
@@ -29,7 +31,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ===== AdaptiveShell (dari Tahap 11-12) =====
+// ===== AdaptiveShell: NavigationBar/Rail + favorites state =====
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({super.key});
 
@@ -43,11 +45,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   void toggleFavorite(String title) {
     setState(() {
-      if (favorites.contains(title)) {
-        favorites.remove(title);
-      } else {
-        favorites.add(title);
-      }
+      favorites.contains(title)
+          ? favorites.remove(title)
+          : favorites.add(title);
     });
   }
 
@@ -56,7 +56,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final pages = [
       const HomeTab(),
       CoursesTab(favorites: favorites, onToggleFavorite: toggleFavorite),
-      const FeedbackFormTab(), // ← Ganti ProfileTab dengan form feedback
+      const FeedbackFormTab(),
     ];
 
     return Scaffold(
@@ -82,9 +82,8 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         builder: (context, constraints) {
           if (constraints.maxWidth < 840) {
             return _buildCompactLayout(pages);
-          } else {
-            return _buildExpandedLayout(pages);
           }
+          return _buildExpandedLayout(pages);
         },
       ),
     );
@@ -139,7 +138,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     );
   }
 
-  static const List<NavigationDestination> _navBarDestinations = [
+  static const _navBarDestinations = [
     NavigationDestination(
       icon: Icon(Icons.home_outlined),
       selectedIcon: Icon(Icons.home),
@@ -164,31 +163,75 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.blueAccent,
-              child: Icon(Icons.home, size: 56, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            const Text('Selamat Datang!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('$studentId - $studentName',
-                style: const TextStyle(fontSize: 14, color: Colors.grey)),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          const CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.blueAccent,
+            child: Icon(Icons.school, size: 56, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          const Text('Course Explorer',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('$studentId - $studentName',
+              style: const TextStyle(fontSize: 14, color: Colors.grey)),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 12),
+          const _HomeMenuTile(
+            icon: Icons.aspect_ratio,
+            title: 'Responsive Layout',
+            subtitle: 'Breakpoint compact / medium / expanded',
+          ),
+          const _HomeMenuTile(
+            icon: Icons.navigation,
+            title: 'Navigation',
+            subtitle: 'Navigator.push, pop, passing data',
+          ),
+          const _HomeMenuTile(
+            icon: Icons.touch_app,
+            title: 'Interaction',
+            subtitle: 'InkWell, GestureDetector, favorite',
+          ),
+          const _HomeMenuTile(
+            icon: Icons.feedback,
+            title: 'Feedback',
+            subtitle: 'Form + validasi + SnackBar/Dialog',
+          ),
+        ],
       ),
     );
   }
 }
 
-// ===== TAB 2: Courses (dari Tahap 12) =====
+class _HomeMenuTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _HomeMenuTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.blue, size: 32),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+      ),
+    );
+  }
+}
+
+// ===== TAB 2: Courses (GridView Responsif) =====
 class CoursesTab extends StatefulWidget {
   final Set<String> favorites;
   final Function(String) onToggleFavorite;
@@ -205,11 +248,19 @@ class CoursesTab extends StatefulWidget {
 
 class _CoursesTabState extends State<CoursesTab> {
   late Future<Map<String, dynamic>> studentFuture;
+  String searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     studentFuture = loadStudentData();
+  }
+
+  // ===== Jumlah kolom berdasarkan breakpoint =====
+  int columnsFor(double width) {
+    if (width < 600) return 1;
+    if (width < 840) return 2;
+    return 3;
   }
 
   @override
@@ -227,76 +278,122 @@ class _CoursesTabState extends State<CoursesTab> {
           );
         }
 
-        final courses = snapshot.data!['courses'] as List<dynamic>;
+        final allCourses = snapshot.data!['courses'] as List<dynamic>;
+        final filtered = allCourses.where((c) {
+          final title = (c['title'] as String).toLowerCase();
+          return title.contains(searchQuery.toLowerCase());
+        }).toList();
 
         return Column(
           children: [
+            // ===== Header Identitas + Search =====
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.blueAccent,
-                    child: Icon(Icons.person, color: Colors.white),
+                  Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.blueAccent,
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(studentName,
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold)),
+                            Text('NIM: $studentId',
+                                style: const TextStyle(
+                                    fontSize: 13, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(studentName,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text('NIM: $studentId',
-                            style: const TextStyle(
-                                fontSize: 13, color: Colors.grey)),
-                      ],
+                  const SizedBox(height: 12),
+
+                  // ===== Search Field =====
+                  TextField(
+                    onChanged: (v) => setState(() => searchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search courses...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
                     ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: courses.length,
-                itemBuilder: (context, index) {
-                  final course = courses[index] as Map<String, dynamic>;
-                  final title = course['title'] as String;
-                  final isFav = widget.favorites.contains(title);
 
-                  return _InteractiveCourseCard(
-                    course: course,
-                    isFavorite: isFav,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CourseDetailPage(course: course),
-                        ),
-                      );
-                    },
-                    onLongPress: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: Text(title),
-                          content: Text(
-                            'Kode: ${course['code']}\n'
-                            'SKS: ${course['credits']}\n'
-                            'Status: ${course['status']}',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Tutup'),
+            // ===== GridView Responsif =====
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = columnsFor(constraints.maxWidth);
+                  if (filtered.isEmpty) {
+                    return const Center(
+                      child: Text('Tidak ada course yang cocok',
+                          style: TextStyle(color: Colors.grey)),
+                    );
+                  }
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: columns == 1 ? 2.5 : (columns == 2 ? 1.8 : 1.5),
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final course = filtered[index] as Map<String, dynamic>;
+                      final title = course['title'] as String;
+                      final isFav = widget.favorites.contains(title);
+
+                      return _CourseGridCard(
+                        course: course,
+                        isFavorite: isFav,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  CourseDetailPage(course: course),
                             ),
-                          ],
-                        ),
+                          );
+                        },
+                        onLongPress: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text(title),
+                              content: Text(
+                                'Kode: ${course['code']}\n'
+                                'SKS: ${course['credits']}\n'
+                                'Status: ${course['status']}',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Tutup'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onFavoriteTap: () =>
+                            widget.onToggleFavorite(title),
                       );
                     },
-                    onFavoriteTap: () => widget.onToggleFavorite(title),
                   );
                 },
               ),
@@ -308,14 +405,15 @@ class _CoursesTabState extends State<CoursesTab> {
   }
 }
 
-class _InteractiveCourseCard extends StatelessWidget {
+// ===== Card Grid (dengan InkWell + GestureDetector + Favorite) =====
+class _CourseGridCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onFavoriteTap;
 
-  const _InteractiveCourseCard({
+  const _CourseGridCard({
     required this.course,
     required this.isFavorite,
     required this.onTap,
@@ -334,45 +432,54 @@ class _InteractiveCourseCard extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  isDone
-                      ? Icons.check_circle
-                      : isRunning
-                          ? Icons.play_circle
-                          : Icons.radio_button_unchecked,
-                  color: statusColor,
-                  size: 32,
+                Row(
+                  children: [
+                    Icon(
+                      isDone
+                          ? Icons.check_circle
+                          : isRunning
+                              ? Icons.play_circle
+                              : Icons.radio_button_unchecked,
+                      color: statusColor,
+                      size: 20,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: onFavoriteTap,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(
+                        isFavorite
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
+                        size: 20,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(course['title'] as String? ?? '-',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('${course['code']} • ${course['credits']} SKS',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
+                const SizedBox(height: 6),
+                Text(
+                  course['title'] as String? ?? '-',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                IconButton(
-                  onPressed: onFavoriteTap,
-                  icon: Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : Colors.grey,
-                  ),
+                const SizedBox(height: 4),
+                Text(
+                  '${course['code']} • ${course['credits']} SKS',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
@@ -383,6 +490,7 @@ class _InteractiveCourseCard extends StatelessWidget {
   }
 }
 
+// ===== Detail Page =====
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
   const CourseDetailPage({super.key, required this.course});
@@ -438,6 +546,15 @@ class CourseDetailPage extends StatelessWidget {
                 subtitle: Text('NIM: $studentId'),
               ),
             ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Kembali'),
+              ),
+            ),
           ],
         ),
       ),
@@ -456,7 +573,7 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAB 3: Feedback Form (Tahap 13 - INTI) =====
+// ===== TAB 3: Feedback Form (dari Tahap 14) =====
 class FeedbackFormTab extends StatefulWidget {
   const FeedbackFormTab({super.key});
 
@@ -466,14 +583,11 @@ class FeedbackFormTab extends StatefulWidget {
 
 class _FeedbackFormTabState extends State<FeedbackFormTab> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
   final TextEditingController namaCtrl =
       TextEditingController(text: studentName);
   final TextEditingController nimCtrl =
       TextEditingController(text: studentId);
   final TextEditingController komentarCtrl = TextEditingController();
-
-  // ===== State untuk loading =====
   bool isLoading = false;
 
   @override
@@ -484,7 +598,6 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
     super.dispose();
   }
 
-  // ===== Function: Tampilkan dialog konfirmasi sebelum submit =====
   Future<bool> _showConfirmDialog() async {
     final result = await showDialog<bool>(
       context: context,
@@ -506,27 +619,17 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
     return result ?? false;
   }
 
-  // ===== Function: Handle submit form =====
   Future<void> _submitForm() async {
-    // 1. Validasi form
     if (!formKey.currentState!.validate()) return;
-
-    // 2. Tampilkan dialog konfirmasi
     final confirmed = await _showConfirmDialog();
     if (!confirmed) return;
 
-    // 3. Tampilkan loading
     setState(() => isLoading = true);
-
-    // 4. Simulasi proses (delay 1.5 detik)
     await Future.delayed(const Duration(milliseconds: 1500));
 
-    // 5. Sembunyikan loading
     if (!mounted) return;
     setState(() => isLoading = false);
 
-    // 6. Tampilkan SnackBar sukses
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Row(
@@ -541,7 +644,6 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
       ),
     );
 
-    // 7. Reset komentar
     komentarCtrl.clear();
   }
 
@@ -549,7 +651,6 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // ===== Form =====
         SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -562,17 +663,15 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
                 ),
                 const SizedBox(height: 12),
                 const Center(
-                  child: Text(
-                    'Form Feedback',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
+                  child: Text('Form Feedback',
+                      style: TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 6),
                 Center(
-                  child: Text(
-                    '$studentId - $studentName',
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
+                  child: Text('$studentId - $studentName',
+                      style: const TextStyle(
+                          fontSize: 13, color: Colors.grey)),
                 ),
                 const SizedBox(height: 24),
                 const Divider(),
@@ -626,13 +725,12 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
                       return 'Komentar wajib diisi';
                     }
                     if (v.trim().length < 5) {
-                      return 'Komentar minimal 5 karakter (sekarang ${v.trim().length})';
+                      return 'Komentar minimal 5 karakter';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -644,21 +742,11 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Center(
-                  child: Text(
-                    'Alur: Validasi → Konfirmasi Dialog → Loading → SnackBar',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ),
                 const SizedBox(height: 24),
               ],
             ),
           ),
         ),
-
-        // ===== Overlay Loading =====
         if (isLoading)
           Container(
             color: Colors.black.withValues(alpha: 0.4),
