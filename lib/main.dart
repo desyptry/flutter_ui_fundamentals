@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 6: Scrollable Content & Keyboard
+// Pertemuan 5 - Tahap 7: Navigator.push() dan Navigator.pop()
 import 'package:flutter/material.dart';
 
 const String studentName = 'Desy_Putri';
@@ -16,177 +16,115 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const ProfileFormPage(),
+      home: const HomePage(),
     );
   }
 }
 
-class ProfileFormPage extends StatefulWidget {
-  const ProfileFormPage({super.key});
-
-  @override
-  State<ProfileFormPage> createState() => _ProfileFormPageState();
-}
-
-class _ProfileFormPageState extends State<ProfileFormPage> {
-  final TextEditingController namaCtrl = TextEditingController(text: studentName);
-  final TextEditingController nimCtrl = TextEditingController(text: studentId);
-  final TextEditingController bioCtrl = TextEditingController();
-  final TextEditingController alamatCtrl = TextEditingController();
-  final TextEditingController hobiCtrl = TextEditingController();
-  final TextEditingController catatanCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    namaCtrl.dispose();
-    nimCtrl.dispose();
-    bioCtrl.dispose();
-    alamatCtrl.dispose();
-    hobiCtrl.dispose();
-    catatanCtrl.dispose();
-    super.dispose();
-  }
+// ===== HomePage =====
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tahap 6 - Scroll & Keyboard'),
+        title: const Text('Home'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      // ===== SingleChildScrollView: bungkus seluruh body =====
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== Header Identitas =====
-            const Center(
-              child: CircleAvatar(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.blueAccent,
                 child: Icon(Icons.person, size: 56, color: Colors.white),
               ),
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: Text(
+              const SizedBox(height: 16),
+              Text(
                 studentName,
                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-            ),
-            Center(
-              child: Text(
+              const SizedBox(height: 4),
+              Text(
                 'NIM: $studentId',
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
-            ),
+              const SizedBox(height: 32),
 
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 12),
-
-            // ===== Form Fields =====
-            const Text('Nama Lengkap',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: namaCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Masukkan nama',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('NIM',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: nimCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Masukkan NIM',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Bio',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: bioCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Tulis bio singkat',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Alamat',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: alamatCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Alamat',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Hobi',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: hobiCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Hobi',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Catatan Tambahan',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: catatanCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Catatan tambahan',
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ===== Tombol Simpan (di bawah sekali) =====
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
+              // ===== Tombol Buka Detail =====
+              ElevatedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Data berhasil disimpan')),
+                  // ===== Navigator.push: buka DetailPage =====
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DetailPage(),
+                    ),
                   );
                 },
-                icon: const Icon(Icons.save),
-                label: const Text('Simpan'),
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Buka Detail'),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'Scroll untuk lihat semua field. Coba fokus ke field bawah lalu buka keyboard.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+// ===== DetailPage =====
+class DetailPage extends StatelessWidget {
+  const DetailPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // ===== AppBar otomatis punya tombol back =====
+      appBar: AppBar(
+        title: const Text('Detail'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.info, size: 60, color: Colors.blue),
+              const SizedBox(height: 16),
+              const Text(
+                'Ini Halaman Detail',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                '$studentId - $studentName',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 32),
+
+              // ===== Tombol Kembali (Navigator.pop) =====
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Kembali'),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Atau tekan tombol back (←) di AppBar.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
         ),
       ),
     );
