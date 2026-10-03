@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 12: Interaction pada Course Explorer
+// Pertemuan 5 - Tahap 13: Form Input & Validasi
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ===== AdaptiveShell (dari Tahap 11) =====
+// ===== AdaptiveShell (dari Tahap 11-12) =====
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({super.key});
 
@@ -39,8 +39,6 @@ class AdaptiveShell extends StatefulWidget {
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
   int currentIndex = 0;
-
-  // ===== State favorite dibagi ke CoursesTab =====
   final Set<String> favorites = {};
 
   void toggleFavorite(String title) {
@@ -55,11 +53,10 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   @override
   Widget build(BuildContext context) {
-    // Pages dibuat on-the-fly agar bisa sharing state `favorites`
     final pages = [
       const HomeTab(),
       CoursesTab(favorites: favorites, onToggleFavorite: toggleFavorite),
-      ProfileTab(favoritesCount: favorites.length),
+      const FeedbackFormTab(), // ← Ganti ProfileTab dengan form feedback
     ];
 
     return Scaffold(
@@ -68,7 +65,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
-          // ===== Counter favorite di AppBar =====
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
@@ -131,9 +127,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               label: Text('Courses'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: Text('Profile'),
+              icon: Icon(Icons.feedback_outlined),
+              selectedIcon: Icon(Icons.feedback),
+              label: Text('Feedback'),
             ),
           ],
         ),
@@ -155,9 +151,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       label: 'Courses',
     ),
     NavigationDestination(
-      icon: Icon(Icons.person_outline),
-      selectedIcon: Icon(Icons.person),
-      label: 'Profile',
+      icon: Icon(Icons.feedback_outlined),
+      selectedIcon: Icon(Icons.feedback),
+      label: 'Feedback',
     ),
   ];
 }
@@ -192,7 +188,7 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-// ===== TAB 2: Courses (dengan Interaction) =====
+// ===== TAB 2: Courses (dari Tahap 12) =====
 class CoursesTab extends StatefulWidget {
   final Set<String> favorites;
   final Function(String) onToggleFavorite;
@@ -235,7 +231,6 @@ class _CoursesTabState extends State<CoursesTab> {
 
         return Column(
           children: [
-            // ===== Header identitas =====
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -262,8 +257,6 @@ class _CoursesTabState extends State<CoursesTab> {
                 ],
               ),
             ),
-
-            // ===== List Course dengan interaksi =====
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -292,8 +285,7 @@ class _CoursesTabState extends State<CoursesTab> {
                           content: Text(
                             'Kode: ${course['code']}\n'
                             'SKS: ${course['credits']}\n'
-                            'Status: ${course['status']}\n\n'
-                            'Long press terdeteksi!',
+                            'Status: ${course['status']}',
                           ),
                           actions: [
                             TextButton(
@@ -316,7 +308,6 @@ class _CoursesTabState extends State<CoursesTab> {
   }
 }
 
-// ===== Course Card dengan InkWell + GestureDetector + IconButton =====
 class _InteractiveCourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
@@ -337,20 +328,15 @@ class _InteractiveCourseCard extends StatelessWidget {
     final status = course['status'] as String? ?? 'Belum';
     final isDone = status == 'Selesai';
     final isRunning = status == 'Berjalan';
-    final statusColor = isDone
-        ? Colors.green
-        : isRunning
-            ? Colors.orange
-            : Colors.grey;
+    final statusColor =
+        isDone ? Colors.green : isRunning ? Colors.orange : Colors.grey;
 
     return GestureDetector(
-      // ===== Long press untuk info tambahan =====
       onLongPress: onLongPress,
       child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
-          // ===== Tap untuk buka detail (dengan ripple) =====
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
@@ -371,24 +357,18 @@ class _InteractiveCourseCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        course['title'] as String? ?? '-',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
+                      Text(course['title'] as String? ?? '-',
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text(
-                        '${course['code']} • ${course['credits']} SKS',
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.grey),
-                      ),
+                      Text('${course['code']} • ${course['credits']} SKS',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                 ),
-                // ===== IconButton Favorite =====
                 IconButton(
                   onPressed: onFavoriteTap,
-                  tooltip: isFavorite ? 'Hapus favorit' : 'Tambah favorit',
                   icon: Icon(
                     isFavorite ? Icons.favorite : Icons.favorite_border,
                     color: isFavorite ? Colors.red : Colors.grey,
@@ -403,7 +383,6 @@ class _InteractiveCourseCard extends StatelessWidget {
   }
 }
 
-// ===== Halaman Detail (dari Tahap 8) =====
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
   const CourseDetailPage({super.key, required this.course});
@@ -411,8 +390,7 @@ class CourseDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = course['status'] as String? ?? 'Belum';
-    final statusColor =
-        status == 'Selesai' ? Colors.green : Colors.orange;
+    final statusColor = status == 'Selesai' ? Colors.green : Colors.orange;
 
     return Scaffold(
       appBar: AppBar(
@@ -460,15 +438,6 @@ class CourseDetailPage extends StatelessWidget {
                 subtitle: Text('NIM: $studentId'),
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Kembali'),
-              ),
-            ),
           ],
         ),
       ),
@@ -487,48 +456,185 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAB 3: Profile =====
-class ProfileTab extends StatelessWidget {
-  final int favoritesCount;
-  const ProfileTab({super.key, required this.favoritesCount});
+// ===== TAB 3: Feedback Form (Tahap 13 - INTI) =====
+class FeedbackFormTab extends StatefulWidget {
+  const FeedbackFormTab({super.key});
+
+  @override
+  State<FeedbackFormTab> createState() => _FeedbackFormTabState();
+}
+
+class _FeedbackFormTabState extends State<FeedbackFormTab> {
+  // ===== GlobalKey untuk validasi form =====
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  // ===== Controllers =====
+  final TextEditingController namaCtrl =
+      TextEditingController(text: studentName);
+  final TextEditingController nimCtrl =
+      TextEditingController(text: studentId);
+  final TextEditingController komentarCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    namaCtrl.dispose();
+    nimCtrl.dispose();
+    komentarCtrl.dispose();
+    super.dispose();
+  }
+
+  // ===== Handle submit form =====
+  void _submitForm() {
+    if (formKey.currentState!.validate()) {
+      // Form valid → tampilkan hasil
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Feedback Terkirim'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nama: ${namaCtrl.text}'),
+              const SizedBox(height: 6),
+              Text('NIM: ${nimCtrl.text}'),
+              const SizedBox(height: 6),
+              Text('Komentar: ${komentarCtrl.text}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Reset komentar setelah submit
+                komentarCtrl.clear();
+              },
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: formKey,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CircleAvatar(
-              radius: 60,
-              backgroundColor: Colors.blueAccent,
-              child: Icon(Icons.person, size: 68, color: Colors.white),
+            // ===== Header =====
+            const Center(
+              child: Icon(Icons.feedback, size: 56, color: Colors.blue),
             ),
-            const SizedBox(height: 20),
-            Text(studentName,
-                style: const TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Form Feedback',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('NIM: $studentId',
-                style: const TextStyle(fontSize: 16, color: Colors.grey)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.favorite, color: Colors.red),
-                  const SizedBox(width: 8),
-                  Text('$favoritesCount course difavorite',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
+            Center(
+              child: Text(
+                '$studentId - $studentName',
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+
+            // ===== Field Nama =====
+            const Text('Nama',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: namaCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Nama wajib diisi';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // ===== Field NIM =====
+            const Text('NIM',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: nimCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.badge),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'NIM wajib diisi';
+                }
+                if (value.trim().length < 8) {
+                  return 'NIM minimal 8 karakter';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // ===== Field Komentar (validasi minimal 5 karakter) =====
+            const Text('Komentar',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: komentarCtrl,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Tulis komentar minimal 5 karakter...',
+                alignLabelWithHint: true,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Komentar wajib diisi';
+                }
+                if (value.trim().length < 5) {
+                  return 'Komentar minimal 5 karakter (sekarang ${value.trim().length})';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // ===== Tombol Submit =====
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _submitForm,
+                icon: const Icon(Icons.send),
+                label: const Text('Kirim Feedback'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Coba klik "Kirim" tanpa mengisi komentar untuk melihat validasi.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
