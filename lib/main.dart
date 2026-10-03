@@ -465,15 +465,16 @@ class FeedbackFormTab extends StatefulWidget {
 }
 
 class _FeedbackFormTabState extends State<FeedbackFormTab> {
-  // ===== GlobalKey untuk validasi form =====
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  // ===== Controllers =====
   final TextEditingController namaCtrl =
       TextEditingController(text: studentName);
   final TextEditingController nimCtrl =
       TextEditingController(text: studentId);
   final TextEditingController komentarCtrl = TextEditingController();
+
+  // ===== State untuk loading =====
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -483,161 +484,201 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
     super.dispose();
   }
 
-  // ===== Handle submit form =====
-  void _submitForm() {
-    if (formKey.currentState!.validate()) {
-      // Form valid → tampilkan hasil
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Feedback Terkirim'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Nama: ${namaCtrl.text}'),
-              const SizedBox(height: 6),
-              Text('NIM: ${nimCtrl.text}'),
-              const SizedBox(height: 6),
-              Text('Komentar: ${komentarCtrl.text}'),
-            ],
+  // ===== Function: Tampilkan dialog konfirmasi sebelum submit =====
+  Future<bool> _showConfirmDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Konfirmasi'),
+        content: const Text('Kirim feedback ini sekarang?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // Reset komentar setelah submit
-                komentarCtrl.clear();
-              },
-              child: const Text('Tutup'),
-            ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Kirim'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  // ===== Function: Handle submit form =====
+  Future<void> _submitForm() async {
+    // 1. Validasi form
+    if (!formKey.currentState!.validate()) return;
+
+    // 2. Tampilkan dialog konfirmasi
+    final confirmed = await _showConfirmDialog();
+    if (!confirmed) return;
+
+    // 3. Tampilkan loading
+    setState(() => isLoading = true);
+
+    // 4. Simulasi proses (delay 1.5 detik)
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // 5. Sembunyikan loading
+    if (!mounted) return;
+    setState(() => isLoading = false);
+
+    // 6. Tampilkan SnackBar sukses
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 8),
+            Text('Feedback berhasil dikirim!'),
           ],
         ),
-      );
-    }
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    // 7. Reset komentar
+    komentarCtrl.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== Header =====
-            const Center(
-              child: Icon(Icons.feedback, size: 56, color: Colors.blue),
-            ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'Form Feedback',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Center(
-              child: Text(
-                '$studentId - $studentName',
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
+    return Stack(
+      children: [
+        // ===== Form =====
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(
+                  child: Icon(Icons.feedback, size: 56, color: Colors.blue),
+                ),
+                const SizedBox(height: 12),
+                const Center(
+                  child: Text(
+                    'Form Feedback',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: Text(
+                    '$studentId - $studentName',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
 
-            // ===== Field Nama =====
-            const Text('Nama',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: namaCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Nama wajib diisi';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
+                const Text('Nama',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: namaCtrl,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
+                ),
+                const SizedBox(height: 16),
 
-            // ===== Field NIM =====
-            const Text('NIM',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: nimCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.badge),
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'NIM wajib diisi';
-                }
-                if (value.trim().length < 8) {
-                  return 'NIM minimal 8 karakter';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
+                const Text('NIM',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: nimCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.badge),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'NIM wajib diisi';
+                    if (v.trim().length < 8) return 'NIM minimal 8 karakter';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
 
-            // ===== Field Komentar (validasi minimal 5 karakter) =====
-            const Text('Komentar',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: komentarCtrl,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Tulis komentar minimal 5 karakter...',
-                alignLabelWithHint: true,
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Komentar wajib diisi';
-                }
-                if (value.trim().length < 5) {
-                  return 'Komentar minimal 5 karakter (sekarang ${value.trim().length})';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
+                const Text('Komentar',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: komentarCtrl,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Tulis komentar minimal 5 karakter...',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Komentar wajib diisi';
+                    }
+                    if (v.trim().length < 5) {
+                      return 'Komentar minimal 5 karakter (sekarang ${v.trim().length})';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
 
-            // ===== Tombol Submit =====
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _submitForm,
-                icon: const Icon(Icons.send),
-                label: const Text('Kirim Feedback'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isLoading ? null : _submitForm,
+                    icon: const Icon(Icons.send),
+                    label: const Text('Kirim Feedback'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Center(
+                  child: Text(
+                    'Alur: Validasi → Konfirmasi Dialog → Loading → SnackBar',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+
+        // ===== Overlay Loading =====
+        if (isLoading)
+          Container(
+            color: Colors.black.withValues(alpha: 0.4),
+            child: const Center(
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Mengirim feedback...'),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'Coba klik "Kirim" tanpa mengisi komentar untuk melihat validasi.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }
