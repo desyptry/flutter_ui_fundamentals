@@ -1,20 +1,11 @@
-// Pertemuan 5 - Tahap 5: GridView Responsif
-import 'dart:convert';
+// Pertemuan 5 - Tahap 6: Scrollable Content & Keyboard
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
 void main() {
   runApp(const MyApp());
-}
-
-// ===== Pembaca JSON (dari Pertemuan 4) =====
-Future<Map<String, dynamic>> loadStudentData() async {
-  final jsonString =
-      await rootBundle.loadString('assets/data/students_data.json');
-  return jsonDecode(jsonString) as Map<String, dynamic>;
 }
 
 class MyApp extends StatelessWidget {
@@ -25,189 +16,176 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const CoursesPage(),
+      home: const ProfileFormPage(),
     );
   }
 }
 
-// ===== Halaman Courses dengan GridView Responsif =====
-class CoursesPage extends StatefulWidget {
-  const CoursesPage({super.key});
+class ProfileFormPage extends StatefulWidget {
+  const ProfileFormPage({super.key});
 
   @override
-  State<CoursesPage> createState() => _CoursesPageState();
+  State<ProfileFormPage> createState() => _ProfileFormPageState();
 }
 
-class _CoursesPageState extends State<CoursesPage> {
-  late Future<Map<String, dynamic>> studentFuture;
+class _ProfileFormPageState extends State<ProfileFormPage> {
+  final TextEditingController namaCtrl = TextEditingController(text: studentName);
+  final TextEditingController nimCtrl = TextEditingController(text: studentId);
+  final TextEditingController bioCtrl = TextEditingController();
+  final TextEditingController alamatCtrl = TextEditingController();
+  final TextEditingController hobiCtrl = TextEditingController();
+  final TextEditingController catatanCtrl = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    studentFuture = loadStudentData();
-  }
-
-  // ===== Function: Tentukan jumlah kolom berdasarkan lebar =====
-  int columnsFor(double width) {
-    if (width < 600) return 1;
-    if (width < 840) return 2;
-    return 3;
+  void dispose() {
+    namaCtrl.dispose();
+    nimCtrl.dispose();
+    bioCtrl.dispose();
+    alamatCtrl.dispose();
+    hobiCtrl.dispose();
+    catatanCtrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Course Explorer'),
+        title: const Text('Tahap 6 - Scroll & Keyboard'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: studentFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Gagal memuat data: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red)),
-            );
-          }
-
-          final data = snapshot.data!;
-          final courses = data['courses'] as List<dynamic>;
-
-          return Column(
-            children: [
-              // ===== Header Identitas =====
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.blueAccent,
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            studentName,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'NIM: $studentId',
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ===== GridView Responsif =====
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columns = columnsFor(constraints.maxWidth);
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.6,
-                      ),
-                      itemCount: courses.length,
-                      itemBuilder: (context, index) {
-                        final course = courses[index] as Map<String, dynamic>;
-                        return _CourseGridCard(course: course);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ===== Kartu Course untuk GridView =====
-class _CourseGridCard extends StatelessWidget {
-  final Map<String, dynamic> course;
-  const _CourseGridCard({required this.course});
-
-  @override
-  Widget build(BuildContext context) {
-    final status = course['status'] as String? ?? 'Belum';
-    final isDone = status == 'Selesai';
-    final isRunning = status == 'Berjalan';
-
-    final IconData icon = isDone
-        ? Icons.check_circle
-        : isRunning
-            ? Icons.play_circle
-            : Icons.radio_button_unchecked;
-
-    final Color statusColor = isDone
-        ? Colors.green
-        : isRunning
-            ? Colors.orange
-            : Colors.grey;
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+      // ===== SingleChildScrollView: bungkus seluruh body =====
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Icon(icon, color: statusColor, size: 20),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor),
-                  ),
-                ),
-              ],
+            // ===== Header Identitas =====
+            const Center(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.blueAccent,
+                child: Icon(Icons.person, size: 56, color: Colors.white),
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              course['title'] as String? ?? '-',
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                studentName,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${course['code'] ?? '-'} • ${course['credits'] ?? 0} SKS',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            Center(
+              child: Text(
+                'NIM: $studentId',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
             ),
+
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+
+            // ===== Form Fields =====
+            const Text('Nama Lengkap',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: namaCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Masukkan nama',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text('NIM',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nimCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Masukkan NIM',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Bio',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: bioCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Tulis bio singkat',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Alamat',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: alamatCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Alamat',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Hobi',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: hobiCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Hobi',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Catatan Tambahan',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: catatanCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Catatan tambahan',
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ===== Tombol Simpan (di bawah sekali) =====
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Data berhasil disimpan')),
+                  );
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('Simpan'),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            const Center(
+              child: Text(
+                'Scroll untuk lihat semua field. Coba fokus ke field bawah lalu buka keyboard.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
