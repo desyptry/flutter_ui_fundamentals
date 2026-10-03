@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 9: Returning Data dari Screen
+// Pertemuan 5 - Tahap 10: NavigationBar (Home, Courses, Profile)
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -24,24 +24,118 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const CourseListPage(),
+      home: const MainShell(),
     );
   }
 }
 
-// ===== Halaman List Course =====
-class CourseListPage extends StatefulWidget {
-  const CourseListPage({super.key});
+// ===== MainShell: Menyimpan state selectedIndex =====
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
 
   @override
-  State<CourseListPage> createState() => _CourseListPageState();
+  State<MainShell> createState() => _MainShellState();
 }
 
-class _CourseListPageState extends State<CourseListPage> {
-  late Future<Map<String, dynamic>> studentFuture;
+class _MainShellState extends State<MainShell> {
+  int currentIndex = 0;
 
-  // ===== State: Set of title yang di-favorite =====
-  final Set<String> favoriteCourses = {};
+  // ===== Daftar halaman sesuai index =====
+  final List<Widget> pages = const [
+    HomeTab(),
+    CoursesTab(),
+    ProfileTab(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Course Explorer'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      // ===== Body: tampilkan halaman sesuai index =====
+      body: pages[currentIndex],
+
+      // ===== NavigationBar (Material 3) =====
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (index) {
+          setState(() => currentIndex = index);
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school),
+            label: 'Courses',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ===== TAB 1: Home =====
+class HomeTab extends StatelessWidget {
+  const HomeTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircleAvatar(
+              radius: 50,
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.home, size: 56, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Selamat Datang!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$studentId - $studentName',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Pilih tab di bawah untuk menjelajahi aplikasi.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===== TAB 2: Courses =====
+class CoursesTab extends StatefulWidget {
+  const CoursesTab({super.key});
+
+  @override
+  State<CoursesTab> createState() => _CoursesTabState();
+}
+
+class _CoursesTabState extends State<CoursesTab> {
+  late Future<Map<String, dynamic>> studentFuture;
 
   @override
   void initState() {
@@ -49,327 +143,123 @@ class _CourseListPageState extends State<CourseListPage> {
     studentFuture = loadStudentData();
   }
 
-  // ===== Function: Buka Detail & Tangkap Hasil =====
-  Future<void> _openDetail(Map<String, dynamic> course) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CourseDetailPage(course: course),
-      ),
-    );
-
-    // ===== Kalau result true, tambahkan ke favorite & tampilkan SnackBar =====
-    if (result == true) {
-      setState(() {
-        favoriteCourses.add(course['title'] as String);
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('"${course['title']}" ditambahkan ke favorit'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Course List'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: studentFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Gagal memuat data: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red)),
-            );
-          }
-
-          final data = snapshot.data!;
-          final courses = data['courses'] as List<dynamic>;
-
-          return Column(
-            children: [
-              // ===== Header Identitas =====
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.blueAccent,
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            studentName,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'NIM: $studentId',
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // ===== Info jumlah favorite =====
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.favorite,
-                              size: 14, color: Colors.red),
-                          const SizedBox(width: 4),
-                          Text('${favoriteCourses.length}'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ===== List Course =====
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: courses.length,
-                  itemBuilder: (context, index) {
-                    final course = courses[index] as Map<String, dynamic>;
-                    final isFavorite =
-                        favoriteCourses.contains(course['title']);
-                    return _CourseListTile(
-                      course: course,
-                      isFavorite: isFavorite,
-                      onTap: () => _openDetail(course),
-                    );
-                  },
-                ),
-              ),
-            ],
+    return FutureBuilder<Map<String, dynamic>>(
+      future: studentFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Gagal: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red)),
           );
-        },
-      ),
-    );
-  }
-}
+        }
 
-// ===== Item List =====
-class _CourseListTile extends StatelessWidget {
-  final Map<String, dynamic> course;
-  final bool isFavorite;
-  final VoidCallback onTap;
+        final courses = snapshot.data!['courses'] as List<dynamic>;
 
-  const _CourseListTile({
-    required this.course,
-    required this.isFavorite,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final status = course['status'] as String? ?? 'Belum';
-    final isDone = status == 'Selesai';
-    final isRunning = status == 'Berjalan';
-
-    final IconData icon = isDone
-        ? Icons.check_circle
-        : isRunning
-            ? Icons.play_circle
-            : Icons.radio_button_unchecked;
-
-    final Color statusColor = isDone
-        ? Colors.green
-        : isRunning
-            ? Colors.orange
-            : Colors.grey;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Icon(icon, color: statusColor, size: 32),
-        title: Text(
-          course['title'] as String? ?? '-',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text('${course['code']} • ${course['credits']} SKS'),
-        trailing: isFavorite
-            ? const Icon(Icons.favorite, color: Colors.red)
-            : const Icon(Icons.arrow_forward_ios,
-                size: 14, color: Colors.grey),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-// ===== Halaman Detail =====
-class CourseDetailPage extends StatelessWidget {
-  final Map<String, dynamic> course;
-
-  const CourseDetailPage({super.key, required this.course});
-
-  @override
-  Widget build(BuildContext context) {
-    final status = course['status'] as String? ?? 'Belum';
-    final isDone = status == 'Selesai';
-    final isRunning = status == 'Berjalan';
-
-    final Color statusColor = isDone
-        ? Colors.green
-        : isRunning
-            ? Colors.orange
-            : Colors.grey;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Course Detail'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
           children: [
-            // ===== Card Detail Course =====
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isDone
-                              ? Icons.check_circle
-                              : isRunning
-                                  ? Icons.play_circle
-                                  : Icons.radio_button_unchecked,
-                          color: statusColor,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            course['title'] as String? ?? '-',
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.book, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Daftar Mata Kuliah (${courses.length})',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  final course = courses[index] as Map<String, dynamic>;
+                  final status = course['status'] as String? ?? 'Belum';
+                  final isDone = status == 'Selesai';
+                  final color = isDone ? Colors.green : Colors.orange;
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: Icon(
+                        isDone ? Icons.check_circle : Icons.play_circle,
+                        color: color,
+                      ),
+                      title: Text(course['title'] as String? ?? '-'),
+                      subtitle: Text(
+                          '${course['code']} • ${course['credits']} SKS'),
+                      trailing: Text(
+                        status,
+                        style: TextStyle(
+                            color: color, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    _buildInfoRow('Kode Mata Kuliah', '${course['code'] ?? '-'}'),
-                    const SizedBox(height: 8),
-                    _buildInfoRow('SKS', '${course['credits'] ?? 0} SKS'),
-                    const SizedBox(height: 8),
-                    _buildInfoRow('Status', status, color: statusColor),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ===== Card Identitas Mahasiswa =====
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                title: Text(studentName),
-                subtitle: Text('NIM: $studentId'),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ===== Tombol "Pilih/Favorite" → pop dengan result true =====
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // Kembali sambil mengirim nilai true
-                  Navigator.pop(context, true);
+                  );
                 },
-                icon: const Icon(Icons.favorite),
-                label: const Text('Tambahkan ke Favorit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
               ),
             ),
+          ],
+        );
+      },
+    );
+  }
+}
 
-            const SizedBox(height: 12),
+// ===== TAB 3: Profile =====
+class ProfileTab extends StatelessWidget {
+  const ProfileTab({super.key});
 
-            // ===== Tombol Kembali tanpa result =====
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Kembali'),
-              ),
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.person, size: 68, color: Colors.white),
             ),
-
             const SizedBox(height: 20),
-            const Center(
-              child: Text(
-                'Contoh lain: pop(result) bisa dipakai untuk mengirim hasil edit form, memilih item dari daftar, atau mengonfirmasi suatu aksi.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
+            Text(
+              studentName,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'NIM: $studentId',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Mobile Programming Student',
+              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+            const ListTile(
+              leading: Icon(Icons.email),
+              title: Text('Email'),
+              subtitle: Text('desy.putri@student.undiksha.ac.id'),
+            ),
+            const ListTile(
+              leading: Icon(Icons.phone),
+              title: Text('Telepon'),
+              subtitle: Text('+62 87861866632'),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey)),
-        Text(
-          value,
-          style: TextStyle(fontWeight: FontWeight.bold, color: color),
-        ),
-      ],
     );
   }
 }
