@@ -1,11 +1,20 @@
-// Pertemuan 5 - Tahap 4: Expanded, Flexible, dan Wrap
+// Pertemuan 5 - Tahap 5: GridView Responsif
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
 void main() {
   runApp(const MyApp());
+}
+
+// ===== Pembaca JSON (dari Pertemuan 4) =====
+Future<Map<String, dynamic>> loadStudentData() async {
+  final jsonString =
+      await rootBundle.loadString('assets/data/students_data.json');
+  return jsonDecode(jsonString) as Map<String, dynamic>;
 }
 
 class MyApp extends StatelessWidget {
@@ -15,142 +24,192 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Tahap 4 - Expanded, Flexible, Wrap'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+      home: const CoursesPage(),
+    );
+  }
+}
+
+// ===== Halaman Courses dengan GridView Responsif =====
+class CoursesPage extends StatefulWidget {
+  const CoursesPage({super.key});
+
+  @override
+  State<CoursesPage> createState() => _CoursesPageState();
+}
+
+class _CoursesPageState extends State<CoursesPage> {
+  late Future<Map<String, dynamic>> studentFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    studentFuture = loadStudentData();
+  }
+
+  // ===== Function: Tentukan jumlah kolom berdasarkan lebar =====
+  int columnsFor(double width) {
+    if (width < 600) return 1;
+    if (width < 840) return 2;
+    return 3;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Course Explorer'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: studentFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Gagal memuat data: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red)),
+            );
+          }
+
+          final data = snapshot.data!;
+          final courses = data['courses'] as List<dynamic>;
+
+          return Column(
             children: [
-              // ===== Identitas =====
-              Text(
-                '$studentId - $studentName',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-
-              // ===== Bagian 1: Expanded 2:1 =====
-              const Text(
-                '1. Expanded dengan rasio 2:1',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: _buildPanel('A', Colors.blue),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: _buildPanel('B', Colors.green),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // ===== Bagian 2: Flexible =====
-              const Text(
-                '2. Flexible (tidak selalu memenuhi ruang)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Flexible(
-                    child: _buildPanel('Flexible', Colors.orange),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 100,
-                    padding: const EdgeInsets.all(12),
-                    color: Colors.grey.shade300,
-                    child: const Text('Fixed 100px'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // ===== Bagian 3: Wrap dengan 6 Chip =====
-              const Text(
-                '3. Wrap dengan 6 Chip skill',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: const [
-                  Chip(label: Text('Flutter')),
-                  Chip(label: Text('Dart')),
-                  Chip(label: Text('Git')),
-                  Chip(label: Text('JSON')),
-                  Chip(label: Text('Layout')),
-                  Chip(label: Text('Navigator')),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // ===== Bagian 4: Perbandingan Row vs Wrap =====
-              const Text(
-                '4. Perbandingan Row biasa (bisa overflow) vs Wrap',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: Colors.red.shade50,
+              // ===== Header Identitas =====
+              Padding(
+                padding: const EdgeInsets.all(16),
                 child: Row(
-                  children: const [
-                    Chip(label: Text('Flutter')),
-                    Chip(label: Text('Dart')),
-                    Chip(label: Text('Git')),
-                    Chip(label: Text('JSON')),
-                    Chip(label: Text('Layout')),
+                  children: [
+                    const CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Colors.blueAccent,
+                      child: Icon(Icons.person, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            studentName,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'NIM: $studentId',
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: Colors.green.shade50,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: const [
-                    Chip(label: Text('Flutter')),
-                    Chip(label: Text('Dart')),
-                    Chip(label: Text('Git')),
-                    Chip(label: Text('JSON')),
-                    Chip(label: Text('Layout')),
-                  ],
+
+              // ===== GridView Responsif =====
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns = columnsFor(constraints.maxWidth);
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.6,
+                      ),
+                      itemCount: courses.length,
+                      itemBuilder: (context, index) {
+                        final course = courses[index] as Map<String, dynamic>;
+                        return _CourseGridCard(course: course);
+                      },
+                    );
+                  },
                 ),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+}
 
-  // ===== Helper Widget =====
-  Widget _buildPanel(String label, Color color) {
-    return Container(
-      height: 80,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.3),
-        border: Border.all(color: color, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontWeight: FontWeight.bold, color: color),
+// ===== Kartu Course untuk GridView =====
+class _CourseGridCard extends StatelessWidget {
+  final Map<String, dynamic> course;
+  const _CourseGridCard({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = course['status'] as String? ?? 'Belum';
+    final isDone = status == 'Selesai';
+    final isRunning = status == 'Berjalan';
+
+    final IconData icon = isDone
+        ? Icons.check_circle
+        : isRunning
+            ? Icons.play_circle
+            : Icons.radio_button_unchecked;
+
+    final Color statusColor = isDone
+        ? Colors.green
+        : isRunning
+            ? Colors.orange
+            : Colors.grey;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: statusColor, size: 20),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              course['title'] as String? ?? '-',
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.bold),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${course['code'] ?? '-'} • ${course['credits'] ?? 0} SKS',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
       ),
     );
   }
