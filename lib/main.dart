@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 8: Passing Data List ke Detail
+// Pertemuan 5 - Tahap 9: Returning Data dari Screen
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -10,7 +10,6 @@ void main() {
   runApp(const MyApp());
 }
 
-// ===== Pembaca JSON (dari Pertemuan 4) =====
 Future<Map<String, dynamic>> loadStudentData() async {
   final jsonString =
       await rootBundle.loadString('assets/data/students_data.json');
@@ -41,10 +40,38 @@ class CourseListPage extends StatefulWidget {
 class _CourseListPageState extends State<CourseListPage> {
   late Future<Map<String, dynamic>> studentFuture;
 
+  // ===== State: Set of title yang di-favorite =====
+  final Set<String> favoriteCourses = {};
+
   @override
   void initState() {
     super.initState();
     studentFuture = loadStudentData();
+  }
+
+  // ===== Function: Buka Detail & Tangkap Hasil =====
+  Future<void> _openDetail(Map<String, dynamic> course) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CourseDetailPage(course: course),
+      ),
+    );
+
+    // ===== Kalau result true, tambahkan ke favorite & tampilkan SnackBar =====
+    if (result == true) {
+      setState(() {
+        favoriteCourses.add(course['title'] as String);
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"${course['title']}" ditambahkan ke favorit'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -101,6 +128,23 @@ class _CourseListPageState extends State<CourseListPage> {
                         ],
                       ),
                     ),
+                    // ===== Info jumlah favorite =====
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.favorite,
+                              size: 14, color: Colors.red),
+                          const SizedBox(width: 4),
+                          Text('${favoriteCourses.length}'),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -112,7 +156,13 @@ class _CourseListPageState extends State<CourseListPage> {
                   itemCount: courses.length,
                   itemBuilder: (context, index) {
                     final course = courses[index] as Map<String, dynamic>;
-                    return _CourseListTile(course: course);
+                    final isFavorite =
+                        favoriteCourses.contains(course['title']);
+                    return _CourseListTile(
+                      course: course,
+                      isFavorite: isFavorite,
+                      onTap: () => _openDetail(course),
+                    );
                   },
                 ),
               ),
@@ -124,10 +174,17 @@ class _CourseListPageState extends State<CourseListPage> {
   }
 }
 
-// ===== Item List Course (bisa ditekan) =====
+// ===== Item List =====
 class _CourseListTile extends StatelessWidget {
   final Map<String, dynamic> course;
-  const _CourseListTile({required this.course});
+  final bool isFavorite;
+  final VoidCallback onTap;
+
+  const _CourseListTile({
+    required this.course,
+    required this.isFavorite,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -157,23 +214,17 @@ class _CourseListTile extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('${course['code']} • ${course['credits']} SKS'),
-        trailing: Icon(Icons.arrow_forward_ios,
-            size: 14, color: Colors.grey.shade400),
-        // ===== Tap → Navigate ke CourseDetailPage =====
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CourseDetailPage(course: course),
-            ),
-          );
-        },
+        trailing: isFavorite
+            ? const Icon(Icons.favorite, color: Colors.red)
+            : const Icon(Icons.arrow_forward_ios,
+                size: 14, color: Colors.grey),
+        onTap: onTap,
       ),
     );
   }
 }
 
-// ===== Halaman Detail: Menerima data via constructor =====
+// ===== Halaman Detail =====
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
 
@@ -202,7 +253,7 @@ class CourseDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== Header Course =====
+            // ===== Card Detail Course =====
             Card(
               elevation: 3,
               shape: RoundedRectangleBorder(
@@ -248,7 +299,7 @@ class CourseDetailPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // ===== Identitas Mahasiswa (WAJIB TAMPIL) =====
+            // ===== Card Identitas Mahasiswa =====
             Card(
               elevation: 3,
               shape: RoundedRectangleBorder(
@@ -263,15 +314,44 @@ class CourseDetailPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // ===== Tombol Kembali =====
+            // ===== Tombol "Pilih/Favorite" → pop dengan result true =====
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Kembali sambil mengirim nilai true
+                  Navigator.pop(context, true);
+                },
+                icon: const Icon(Icons.favorite),
+                label: const Text('Tambahkan ke Favorit'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ===== Tombol Kembali tanpa result =====
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Kembali'),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            const Center(
+              child: Text(
+                'Contoh lain: pop(result) bisa dipakai untuk mengirim hasil edit form, memilih item dari daftar, atau mengonfirmasi suatu aksi.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ),
           ],
@@ -287,10 +367,7 @@ class CourseDetailPage extends StatelessWidget {
         Text(label, style: const TextStyle(color: Colors.grey)),
         Text(
           value,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: color),
         ),
       ],
     );
