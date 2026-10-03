@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 10: NavigationBar (Home, Courses, Profile)
+// Pertemuan 5 - Tahap 11: Adaptive Navigation (NavigationBar ↔ NavigationRail)
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -24,27 +24,45 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const MainShell(),
+      home: const AdaptiveShell(),
     );
   }
 }
 
-// ===== MainShell: Menyimpan state selectedIndex =====
-class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+// ===== AdaptiveShell: NavigationBar di compact, NavigationRail di expanded =====
+class AdaptiveShell extends StatefulWidget {
+  const AdaptiveShell({super.key});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  State<AdaptiveShell> createState() => _AdaptiveShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _AdaptiveShellState extends State<AdaptiveShell> {
   int currentIndex = 0;
 
-  // ===== Daftar halaman sesuai index =====
   final List<Widget> pages = const [
     HomeTab(),
     CoursesTab(),
     ProfileTab(),
+  ];
+
+  // ===== Daftar destinasi (share antara NavigationBar & Rail) =====
+  static const List<NavigationDestination> destinations = [
+    NavigationDestination(
+      icon: Icon(Icons.home_outlined),
+      selectedIcon: Icon(Icons.home),
+      label: 'Home',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.school_outlined),
+      selectedIcon: Icon(Icons.school),
+      label: 'Courses',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.person_outline),
+      selectedIcon: Icon(Icons.person),
+      label: 'Profile',
+    ),
   ];
 
   @override
@@ -55,33 +73,72 @@ class _MainShellState extends State<MainShell> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      // ===== Body: tampilkan halaman sesuai index =====
-      body: pages[currentIndex],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // ===== Breakpoint: < 840px = compact/medium (bottom nav) =====
+          //                 >= 840px = expanded (rail di samping) =====
+          if (constraints.maxWidth < 840) {
+            return _buildCompactLayout();
+          } else {
+            return _buildExpandedLayout();
+          }
+        },
+      ),
+    );
+  }
 
-      // ===== NavigationBar (Material 3) =====
+  // ===== Compact/Medium: NavigationBar di bawah =====
+  Widget _buildCompactLayout() {
+    return Scaffold(
+      body: pages[currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (index) {
           setState(() => currentIndex = index);
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school),
-            label: 'Courses',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        destinations: destinations,
       ),
+    );
+  }
+
+  // ===== Expanded: NavigationRail di samping kiri =====
+  Widget _buildExpandedLayout() {
+    return Row(
+      children: [
+        NavigationRail(
+          selectedIndex: currentIndex,
+          onDestinationSelected: (index) {
+            setState(() => currentIndex = index);
+          },
+          labelType: NavigationRailLabelType.all,
+          leading: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: CircleAvatar(
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+          ),
+          destinations: const [
+            NavigationRailDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: Text('Home'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.school_outlined),
+              selectedIcon: Icon(Icons.school),
+              label: Text('Courses'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: Text('Profile'),
+            ),
+          ],
+        ),
+        const VerticalDivider(thickness: 1, width: 1),
+        Expanded(child: pages[currentIndex]),
+      ],
     );
   }
 }
@@ -115,7 +172,7 @@ class HomeTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Pilih tab di bawah untuk menjelajahi aplikasi.',
+              'Coba ubah ukuran window: di layar lebar, navigasi pindah ke samping.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
@@ -243,19 +300,6 @@ class ProfileTab extends StatelessWidget {
             const Text(
               'Mobile Programming Student',
               style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 12),
-            const ListTile(
-              leading: Icon(Icons.email),
-              title: Text('Email'),
-              subtitle: Text('desy.putri@student.undiksha.ac.id'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.phone),
-              title: Text('Telepon'),
-              subtitle: Text('+62 87861866632'),
             ),
           ],
         ),
