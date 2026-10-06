@@ -1,4 +1,4 @@
-// Pertemuan 5 - Tahap 15: Course Explorer (Integrasi Final)
+// Pertemuan 6 - Tahap 1: identifikasi local dan shared state
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
