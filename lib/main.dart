@@ -1,29 +1,29 @@
-// Pertemuan 6 - Tahap 3: Lifting State Up & Single Source of Truth
+// Pertemuan 6 - Tahap 6: Memasang Provider pada Widget Tree
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:provider/provider.dart';
 import 'providers/course_state.dart';
+
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
-void main() {
-  // ===== TAHAP 5: Uji CourseState sementara =====
-  final state = CourseState();
-  debugPrint('Awal: ${state.favoriteCount} favorite');
-  state.toggleFavorite('MOB01');
-  debugPrint('Setelah toggle MOB01: ${state.favoriteCount} favorite');
-  state.toggleFavorite('MOB02');
-  debugPrint('Setelah toggle MOB02: ${state.favoriteCount} favorite');
-  state.toggleFavorite('MOB01');
-  debugPrint('Setelah toggle MOB01 lagi: ${state.favoriteCount} favorite');
-
-  runApp(const MyApp());
-}
-
+// ===== Function Pembaca JSON =====
 Future<Map<String, dynamic>> loadStudentData() async {
   final jsonString =
       await rootBundle.loadString('assets/data/students_data.json');
   return jsonDecode(jsonString) as Map<String, dynamic>;
+}
+
+void main() {
+  runApp(
+    // ===== TAHAP 6: ChangeNotifierProvider =====
+    // CourseState disediakan untuk semua widget di bawahnya.
+    ChangeNotifierProvider(
+      create: (_) => CourseState(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -49,13 +49,15 @@ class AdaptiveShell extends StatefulWidget {
 }
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
-  final ValueNotifier<int> counterNotifier = ValueNotifier<int>(0);
   int currentIndex = 0;
 
-
+  // ===== TAHAP 3: SINGLE SOURCE OF TRUTH =====
   final Set<String> favorites = {};
 
+  // ===== TAHAP 4: ValueNotifier =====
+  final ValueNotifier<int> counterNotifier = ValueNotifier<int>(0);
 
+  // ===== Aksi untuk mengubah state =====
   void toggleFavorite(String title) {
     setState(() {
       if (favorites.contains(title)) {
@@ -65,57 +67,58 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       }
     });
   }
+
   @override
   void dispose() {
     counterNotifier.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
       const HomeTab(),
       CoursesTab(
-      
         favorites: favorites,
-        onToggleFavorite: toggleFavorite, 
+        onToggleFavorite: toggleFavorite,
       ),
-      
       FavoritesTab(
         favorites: favorites,
         onToggleFavorite: toggleFavorite,
       ),
-      const FeedbackFormTab(), 
+      const FeedbackFormTab(),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        // Judul TIDAK diubah — tetap "Course Explorer"
         title: const Text('Course Explorer'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          // ===== TAHAP 4: ValueListenableBuilder =====
           Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    child: ValueListenableBuilder<int>(
-      valueListenable: counterNotifier,
-      builder: (context, value, child) {
-        return Row(
-          children: [
-            // Tombol untuk mengubah nilai
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline,
-                  color: Colors.white, size: 20),
-              onPressed: () => counterNotifier.value++, // ← ubah nilai
-              tooltip: 'Tambah counter',
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ValueListenableBuilder<int>(
+              valueListenable: counterNotifier,
+              builder: (context, value, child) {
+                return Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline,
+                          color: Colors.white, size: 20),
+                      onPressed: () => counterNotifier.value++,
+                      tooltip: 'Tambah counter',
+                    ),
+                    Text('$value',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                );
+              },
             ),
-            Text('$value',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        );
-      },
-    ),
-  ),
+          ),
+          // ===== Counter favorite =====
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
@@ -158,7 +161,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             label: 'Courses',
           ),
           NavigationDestination(
-            // TAHAP 3: destinasi baru
             icon: Icon(Icons.favorite_outline),
             selectedIcon: Icon(Icons.favorite),
             label: 'Favorites',
@@ -199,7 +201,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               label: Text('Courses'),
             ),
             NavigationRailDestination(
-              // TAHAP 3: destinasi baru
               icon: Icon(Icons.favorite_outline),
               selectedIcon: Icon(Icons.favorite),
               label: Text('Favorites'),
@@ -312,10 +313,7 @@ class _CoursesTabState extends State<CoursesTab> {
   String searchQuery = '';
 
   // ===== TAHAP 4: ValueNotifier =====
-  // Nilai ini dipantau dengan ValueListenableBuilder — tidak butuh setState.
   final ValueNotifier<int> favoriteCount = ValueNotifier<int>(0);
-
-  // ===== Pembanding: state yang sama tapi pakai setState =====
   int setStateCounter = 0;
 
   @override
@@ -400,7 +398,6 @@ class _CoursesTabState extends State<CoursesTab> {
             ),
 
             // ===== TAHAP 4: Kartu Eksperimen =====
-            // Kontras ValueNotifier (atas) vs setState (bawah)
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               color: Colors.yellow.shade50,
@@ -420,12 +417,12 @@ class _CoursesTabState extends State<CoursesTab> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Bandingkan rebuild: ValueNotifier (hanya angka) vs setState (seluruh screen)',
+                      'Bandingkan rebuild: ValueNotifier vs setState',
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                     const Divider(),
 
-                    // ===== Baris 1: ValueNotifier =====
+                    // Baris 1: ValueNotifier
                     Row(
                       children: [
                         Container(
@@ -442,8 +439,6 @@ class _CoursesTabState extends State<CoursesTab> {
                                   color: Colors.green)),
                         ),
                         const SizedBox(width: 8),
-
-                        // Nilai + ValueListenableBuilder (hanya ini yang rebuild)
                         ValueListenableBuilder<int>(
                           valueListenable: favoriteCount,
                           builder: (context, value, child) {
@@ -456,10 +451,7 @@ class _CoursesTabState extends State<CoursesTab> {
                             );
                           },
                         ),
-
                         const Spacer(),
-
-                        // Tombol + dan -
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline,
                               color: Colors.green),
@@ -481,7 +473,7 @@ class _CoursesTabState extends State<CoursesTab> {
 
                     const SizedBox(height: 4),
 
-                    // ===== Baris 2: setState =====
+                    // Baris 2: setState
                     Row(
                       children: [
                         Container(
@@ -605,6 +597,7 @@ class _CoursesTabState extends State<CoursesTab> {
     );
   }
 }
+
 class _CourseGridCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
@@ -770,7 +763,7 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAB 3: Favorites (TAHAP 3 — bukti single source of truth) =====
+// ===== TAB 3: Favorites =====
 class FavoritesTab extends StatelessWidget {
   final Set<String> favorites;
   final Function(String) onToggleFavorite;
