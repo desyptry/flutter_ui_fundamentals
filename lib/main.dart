@@ -2,11 +2,21 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-
+import 'providers/course_state.dart';
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
 void main() {
+  // ===== TAHAP 5: Uji CourseState sementara =====
+  final state = CourseState();
+  debugPrint('Awal: ${state.favoriteCount} favorite');
+  state.toggleFavorite('MOB01');
+  debugPrint('Setelah toggle MOB01: ${state.favoriteCount} favorite');
+  state.toggleFavorite('MOB02');
+  debugPrint('Setelah toggle MOB02: ${state.favoriteCount} favorite');
+  state.toggleFavorite('MOB01');
+  debugPrint('Setelah toggle MOB01 lagi: ${state.favoriteCount} favorite');
+
   runApp(const MyApp());
 }
 
@@ -316,7 +326,6 @@ class _CoursesTabState extends State<CoursesTab> {
 
   @override
   void dispose() {
-    // TAHAP 4: WAJIB dispose ValueNotifier
     favoriteCount.dispose();
     super.dispose();
   }
