@@ -1,4 +1,4 @@
-// Pertemuan 6 - Tahap 6: Memasang Provider pada Widget Tree
+// Pertemuan 6 - Tahap 7: context.watch, context.read, dan Consumer
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -18,7 +18,6 @@ Future<Map<String, dynamic>> loadStudentData() async {
 void main() {
   runApp(
     // ===== TAHAP 6: ChangeNotifierProvider =====
-    // CourseState disediakan untuk semua widget di bawahnya.
     ChangeNotifierProvider(
       create: (_) => CourseState(),
       child: const MyApp(),
@@ -40,7 +39,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ===== AdaptiveShell: OWNER state favorites =====
+// ===== AdaptiveShell =====
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({super.key});
 
@@ -51,41 +50,17 @@ class AdaptiveShell extends StatefulWidget {
 class _AdaptiveShellState extends State<AdaptiveShell> {
   int currentIndex = 0;
 
-  // ===== TAHAP 3: SINGLE SOURCE OF TRUTH =====
-  final Set<String> favorites = {};
-
-  // ===== TAHAP 4: ValueNotifier =====
-  final ValueNotifier<int> counterNotifier = ValueNotifier<int>(0);
-
-  // ===== Aksi untuk mengubah state =====
-  void toggleFavorite(String title) {
-    setState(() {
-      if (favorites.contains(title)) {
-        favorites.remove(title);
-      } else {
-        favorites.add(title);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    counterNotifier.dispose();
-    super.dispose();
-  }
+  // ===== TAHAP 7: favorites sekarang dari Provider, bukan lokal =====
 
   @override
   Widget build(BuildContext context) {
+    // ===== TAHAP 7: watch jumlah favorite dari Provider =====
+    final favoritesCount = context.watch<CourseState>().favoriteCount;
+
     final pages = [
       const HomeTab(),
-      CoursesTab(
-        favorites: favorites,
-        onToggleFavorite: toggleFavorite,
-      ),
-      FavoritesTab(
-        favorites: favorites,
-        onToggleFavorite: toggleFavorite,
-      ),
+      const CoursesTab(),
+      const FavoritesTab(),
       const FeedbackFormTab(),
     ];
 
@@ -95,37 +70,14 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
-          // ===== TAHAP 4: ValueListenableBuilder =====
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: ValueListenableBuilder<int>(
-              valueListenable: counterNotifier,
-              builder: (context, value, child) {
-                return Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline,
-                          color: Colors.white, size: 20),
-                      onPressed: () => counterNotifier.value++,
-                      tooltip: 'Tambah counter',
-                    ),
-                    Text('$value',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                );
-              },
-            ),
-          ),
-          // ===== Counter favorite =====
+          // ===== Counter favorite dari Provider (TAHAP 7) =====
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
               children: [
                 const Icon(Icons.favorite, color: Colors.white, size: 18),
                 const SizedBox(width: 4),
-                Text('${favorites.length}',
+                Text('$favoritesCount',
                     style: const TextStyle(color: Colors.white)),
               ],
             ),
@@ -295,14 +247,8 @@ class _HomeMenuTile extends StatelessWidget {
 
 // ===== TAB 2: Courses =====
 class CoursesTab extends StatefulWidget {
-  final Set<String> favorites;
-  final Function(String) onToggleFavorite;
-
-  const CoursesTab({
-    super.key,
-    required this.favorites,
-    required this.onToggleFavorite,
-  });
+  // ===== TAHAP 7: tidak lagi terima props =====
+  const CoursesTab({super.key});
 
   @override
   State<CoursesTab> createState() => _CoursesTabState();
@@ -312,7 +258,7 @@ class _CoursesTabState extends State<CoursesTab> {
   late Future<Map<String, dynamic>> studentFuture;
   String searchQuery = '';
 
-  // ===== TAHAP 4: ValueNotifier =====
+  // ===== TAHAP 4: ValueNotifier untuk eksperimen =====
   final ValueNotifier<int> favoriteCount = ValueNotifier<int>(0);
   int setStateCounter = 0;
 
@@ -397,7 +343,7 @@ class _CoursesTabState extends State<CoursesTab> {
               ),
             ),
 
-            // ===== TAHAP 4: Kartu Eksperimen =====
+            // ===== TAHAP 4: Kartu Eksperimen (ValueNotifier vs setState) =====
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               color: Colors.yellow.shade50,
@@ -460,17 +406,14 @@ class _CoursesTabState extends State<CoursesTab> {
                               favoriteCount.value--;
                             }
                           },
-                          tooltip: 'Kurangi',
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle,
                               color: Colors.green),
                           onPressed: () => favoriteCount.value++,
-                          tooltip: 'Tambah',
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 4),
 
                     // Baris 2: setState
@@ -506,13 +449,11 @@ class _CoursesTabState extends State<CoursesTab> {
                               setState(() => setStateCounter--);
                             }
                           },
-                          tooltip: 'Kurangi (setState)',
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle,
                               color: Colors.orange),
                           onPressed: () => setState(() => setStateCounter++),
-                          tooltip: 'Tambah (setState)',
                         ),
                       ],
                     ),
@@ -550,11 +491,9 @@ class _CoursesTabState extends State<CoursesTab> {
                     itemBuilder: (context, index) {
                       final course = filtered[index] as Map<String, dynamic>;
                       final title = course['title'] as String;
-                      final isFav = widget.favorites.contains(title);
 
                       return _CourseGridCard(
                         course: course,
-                        isFavorite: isFav,
                         onTap: () {
                           Navigator.push(
                             context,
@@ -583,8 +522,6 @@ class _CoursesTabState extends State<CoursesTab> {
                             ),
                           );
                         },
-                        onFavoriteTap: () =>
-                            widget.onToggleFavorite(title),
                       );
                     },
                   );
@@ -598,19 +535,16 @@ class _CoursesTabState extends State<CoursesTab> {
   }
 }
 
+// ===== _CourseGridCard =====
 class _CourseGridCard extends StatelessWidget {
   final Map<String, dynamic> course;
-  final bool isFavorite;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
-  final VoidCallback onFavoriteTap;
 
   const _CourseGridCard({
     required this.course,
-    required this.isFavorite,
     required this.onTap,
     required this.onLongPress,
-    required this.onFavoriteTap,
   });
 
   @override
@@ -646,15 +580,27 @@ class _CourseGridCard extends StatelessWidget {
                       size: 20,
                     ),
                     const Spacer(),
-                    IconButton(
-                      onPressed: onFavoriteTap,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? Colors.red : Colors.grey,
-                        size: 20,
-                      ),
+                    // ===== TAHAP 7: Consumer membatasi rebuild =====
+                    Consumer<CourseState>(
+                      builder: (context, state, child) {
+                        final title = course['title'] as String;
+                        final isFav = state.isFavorite(title);
+                        return IconButton(
+                          onPressed: () {
+                            // read() untuk aksi — tidak listen
+                            context
+                                .read<CourseState>()
+                                .toggleFavorite(title);
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: isFav ? Colors.red : Colors.grey,
+                            size: 20,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -763,19 +709,17 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAB 3: Favorites =====
+// ===== TAB 3: Favorites (TAHAP 7: pakai context.watch) =====
 class FavoritesTab extends StatelessWidget {
-  final Set<String> favorites;
-  final Function(String) onToggleFavorite;
-
-  const FavoritesTab({
-    super.key,
-    required this.favorites,
-    required this.onToggleFavorite,
-  });
+  // ===== TAHAP 7: tidak lagi terima props =====
+  const FavoritesTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // ===== watch() untuk listen perubahan favorites =====
+    final state = context.watch<CourseState>();
+    final favorites = state.favorites;
+
     return Column(
       children: [
         Padding(
@@ -824,7 +768,12 @@ class FavoritesTab extends StatelessWidget {
                                 fontWeight: FontWeight.bold)),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
-                          onPressed: () => onToggleFavorite(title),
+                          onPressed: () {
+                            // read() untuk aksi
+                            context
+                                .read<CourseState>()
+                                .toggleFavorite(title);
+                          },
                           tooltip: 'Hapus dari favorit',
                         ),
                       ),
