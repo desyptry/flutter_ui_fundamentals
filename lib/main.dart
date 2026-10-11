@@ -1,4 +1,4 @@
-// Pertemuan 6 - Tahap 1: identifikasi local dan shared state
+// Pertemuan 6 - Tahap 3: Lifting State Up & Single Source of Truth
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -10,7 +10,6 @@ void main() {
   runApp(const MyApp());
 }
 
-// ===== Pembaca JSON =====
 Future<Map<String, dynamic>> loadStudentData() async {
   final jsonString =
       await rootBundle.loadString('assets/data/students_data.json');
@@ -31,7 +30,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ===== AdaptiveShell: NavigationBar/Rail + favorites state =====
+// ===== AdaptiveShell: OWNER state favorites =====
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({super.key});
 
@@ -41,13 +40,21 @@ class AdaptiveShell extends StatefulWidget {
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
   int currentIndex = 0;
+
+  // ===== TAHAP 3: SINGLE SOURCE OF TRUTH =====
+  // State favorites HANYA disimpan di sini (owner).
+  // Tidak ada salinan di widget manapun.
   final Set<String> favorites = {};
 
+  // ===== Aksi untuk mengubah state =====
+  // Callback ini diteruskan ke child via constructor.
   void toggleFavorite(String title) {
     setState(() {
-      favorites.contains(title)
-          ? favorites.remove(title)
-          : favorites.add(title);
+      if (favorites.contains(title)) {
+        favorites.remove(title);
+      } else {
+        favorites.add(title);
+      }
     });
   }
 
@@ -55,12 +62,22 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   Widget build(BuildContext context) {
     final pages = [
       const HomeTab(),
-      CoursesTab(favorites: favorites, onToggleFavorite: toggleFavorite),
-      const FeedbackFormTab(),
+      CoursesTab(
+        // Data turun via constructor
+        favorites: favorites,
+        onToggleFavorite: toggleFavorite, // Aksi naik via callback
+      ),
+      // TAHAP 3: widget kedua yang membaca state yang sama
+      FavoritesTab(
+        favorites: favorites,
+        onToggleFavorite: toggleFavorite,
+      ),
+      const FeedbackFormTab(), // ← tetap ada
     ];
 
     return Scaffold(
       appBar: AppBar(
+        // Judul TIDAK diubah — tetap "Course Explorer"
         title: const Text('Course Explorer'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -95,7 +112,29 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (i) => setState(() => currentIndex = i),
-        destinations: _navBarDestinations,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school),
+            label: 'Courses',
+          ),
+          NavigationDestination(
+            // TAHAP 3: destinasi baru
+            icon: Icon(Icons.favorite_outline),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.feedback_outlined),
+            selectedIcon: Icon(Icons.feedback),
+            label: 'Feedback',
+          ),
+        ],
       ),
     );
   }
@@ -126,6 +165,12 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               label: Text('Courses'),
             ),
             NavigationRailDestination(
+              // TAHAP 3: destinasi baru
+              icon: Icon(Icons.favorite_outline),
+              selectedIcon: Icon(Icons.favorite),
+              label: Text('Favorites'),
+            ),
+            NavigationRailDestination(
               icon: Icon(Icons.feedback_outlined),
               selectedIcon: Icon(Icons.feedback),
               label: Text('Feedback'),
@@ -137,24 +182,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       ],
     );
   }
-
-  static const _navBarDestinations = [
-    NavigationDestination(
-      icon: Icon(Icons.home_outlined),
-      selectedIcon: Icon(Icons.home),
-      label: 'Home',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.school_outlined),
-      selectedIcon: Icon(Icons.school),
-      label: 'Courses',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.feedback_outlined),
-      selectedIcon: Icon(Icons.feedback),
-      label: 'Feedback',
-    ),
-  ];
 }
 
 // ===== TAB 1: Home =====
@@ -231,7 +258,7 @@ class _HomeMenuTile extends StatelessWidget {
   }
 }
 
-// ===== TAB 2: Courses (GridView Responsif) =====
+// ===== TAB 2: Courses =====
 class CoursesTab extends StatefulWidget {
   final Set<String> favorites;
   final Function(String) onToggleFavorite;
@@ -254,13 +281,6 @@ class _CoursesTabState extends State<CoursesTab> {
   void initState() {
     super.initState();
     studentFuture = loadStudentData();
-  }
-
-  // ===== Jumlah kolom berdasarkan breakpoint =====
-  int columnsFor(double width) {
-    if (width < 600) return 1;
-    if (width < 840) return 2;
-    return 3;
   }
 
   @override
@@ -286,7 +306,6 @@ class _CoursesTabState extends State<CoursesTab> {
 
         return Column(
           children: [
-            // ===== Header Identitas + Search =====
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -316,8 +335,6 @@ class _CoursesTabState extends State<CoursesTab> {
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // ===== Search Field =====
                   TextField(
                     onChanged: (v) => setState(() => searchQuery = v),
                     decoration: InputDecoration(
@@ -333,12 +350,14 @@ class _CoursesTabState extends State<CoursesTab> {
                 ],
               ),
             ),
-
-            // ===== GridView Responsif =====
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final columns = columnsFor(constraints.maxWidth);
+                  final columns = constraints.maxWidth < 600
+                      ? 1
+                      : constraints.maxWidth < 840
+                          ? 2
+                          : 3;
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Text('Tidak ada course yang cocok',
@@ -351,7 +370,7 @@ class _CoursesTabState extends State<CoursesTab> {
                       crossAxisCount: columns,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: columns == 1 ? 2.5 : (columns == 2 ? 1.8 : 1.5),
+                      childAspectRatio: 1.5,
                     ),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
@@ -405,7 +424,6 @@ class _CoursesTabState extends State<CoursesTab> {
   }
 }
 
-// ===== Card Grid (dengan InkWell + GestureDetector + Favorite) =====
 class _CourseGridCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
@@ -459,9 +477,7 @@ class _CourseGridCard extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       icon: Icon(
-                        isFavorite
-                            ? Icons.favorite
-                            : Icons.favorite_border,
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: isFavorite ? Colors.red : Colors.grey,
                         size: 20,
                       ),
@@ -490,7 +506,7 @@ class _CourseGridCard extends StatelessWidget {
   }
 }
 
-// ===== Detail Page =====
+// ===== Course Detail Page =====
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
   const CourseDetailPage({super.key, required this.course});
@@ -573,7 +589,81 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAB 3: Feedback Form (dari Tahap 14) =====
+// ===== TAB 3: Favorites (TAHAP 3 — bukti single source of truth) =====
+class FavoritesTab extends StatelessWidget {
+  final Set<String> favorites;
+  final Function(String) onToggleFavorite;
+
+  const FavoritesTab({
+    super.key,
+    required this.favorites,
+    required this.onToggleFavorite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.favorite, color: Colors.red, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                'Favorites (${favorites.length})',
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: favorites.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.favorite_border,
+                          size: 64, color: Colors.grey),
+                      SizedBox(height: 12),
+                      Text('Belum ada course favorit',
+                          style: TextStyle(color: Colors.grey)),
+                      SizedBox(height: 6),
+                      Text(
+                        'Tap ikon hati di tab Courses.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: favorites.map((title) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading:
+                            const Icon(Icons.favorite, color: Colors.red),
+                        title: Text(title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => onToggleFavorite(title),
+                          tooltip: 'Hapus dari favorit',
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ===== TAB 4: Feedback Form =====
 class FeedbackFormTab extends StatefulWidget {
   const FeedbackFormTab({super.key});
 
@@ -676,7 +766,6 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
                 const SizedBox(height: 24),
                 const Divider(),
                 const SizedBox(height: 16),
-
                 const Text('Nama',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
@@ -686,11 +775,11 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Nama wajib diisi'
+                      : null,
                 ),
                 const SizedBox(height: 16),
-
                 const Text('NIM',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
@@ -708,7 +797,6 @@ class _FeedbackFormTabState extends State<FeedbackFormTab> {
                   },
                 ),
                 const SizedBox(height: 16),
-
                 const Text('Komentar',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
