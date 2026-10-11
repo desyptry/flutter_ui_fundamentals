@@ -39,15 +39,13 @@ class AdaptiveShell extends StatefulWidget {
 }
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
+  final ValueNotifier<int> counterNotifier = ValueNotifier<int>(0);
   int currentIndex = 0;
 
-  // ===== TAHAP 3: SINGLE SOURCE OF TRUTH =====
-  // State favorites HANYA disimpan di sini (owner).
-  // Tidak ada salinan di widget manapun.
+
   final Set<String> favorites = {};
 
-  // ===== Aksi untuk mengubah state =====
-  // Callback ini diteruskan ke child via constructor.
+
   void toggleFavorite(String title) {
     setState(() {
       if (favorites.contains(title)) {
@@ -57,22 +55,26 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       }
     });
   }
-
+  @override
+  void dispose() {
+    counterNotifier.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final pages = [
       const HomeTab(),
       CoursesTab(
-        // Data turun via constructor
+      
         favorites: favorites,
-        onToggleFavorite: toggleFavorite, // Aksi naik via callback
+        onToggleFavorite: toggleFavorite, 
       ),
-      // TAHAP 3: widget kedua yang membaca state yang sama
+      
       FavoritesTab(
         favorites: favorites,
         onToggleFavorite: toggleFavorite,
       ),
-      const FeedbackFormTab(), // ← tetap ada
+      const FeedbackFormTab(), 
     ];
 
     return Scaffold(
@@ -82,6 +84,28 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: ValueListenableBuilder<int>(
+      valueListenable: counterNotifier,
+      builder: (context, value, child) {
+        return Row(
+          children: [
+            // Tombol untuk mengubah nilai
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline,
+                  color: Colors.white, size: 20),
+              onPressed: () => counterNotifier.value++, // ← ubah nilai
+              tooltip: 'Tambah counter',
+            ),
+            Text('$value',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        );
+      },
+    ),
+  ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
@@ -277,10 +301,24 @@ class _CoursesTabState extends State<CoursesTab> {
   late Future<Map<String, dynamic>> studentFuture;
   String searchQuery = '';
 
+  // ===== TAHAP 4: ValueNotifier =====
+  // Nilai ini dipantau dengan ValueListenableBuilder — tidak butuh setState.
+  final ValueNotifier<int> favoriteCount = ValueNotifier<int>(0);
+
+  // ===== Pembanding: state yang sama tapi pakai setState =====
+  int setStateCounter = 0;
+
   @override
   void initState() {
     super.initState();
     studentFuture = loadStudentData();
+  }
+
+  @override
+  void dispose() {
+    // TAHAP 4: WAJIB dispose ValueNotifier
+    favoriteCount.dispose();
+    super.dispose();
   }
 
   @override
@@ -306,6 +344,7 @@ class _CoursesTabState extends State<CoursesTab> {
 
         return Column(
           children: [
+            // ===== Header: Identitas + Search =====
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -350,6 +389,140 @@ class _CoursesTabState extends State<CoursesTab> {
                 ],
               ),
             ),
+
+            // ===== TAHAP 4: Kartu Eksperimen =====
+            // Kontras ValueNotifier (atas) vs setState (bawah)
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: Colors.yellow.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.science, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Text('Eksperimen Tahap 4',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Bandingkan rebuild: ValueNotifier (hanya angka) vs setState (seluruh screen)',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                    const Divider(),
+
+                    // ===== Baris 1: ValueNotifier =====
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('ValueNotifier',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green)),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Nilai + ValueListenableBuilder (hanya ini yang rebuild)
+                        ValueListenableBuilder<int>(
+                          valueListenable: favoriteCount,
+                          builder: (context, value, child) {
+                            return Text(
+                              '$value',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green),
+                            );
+                          },
+                        ),
+
+                        const Spacer(),
+
+                        // Tombol + dan -
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline,
+                              color: Colors.green),
+                          onPressed: () {
+                            if (favoriteCount.value > 0) {
+                              favoriteCount.value--;
+                            }
+                          },
+                          tooltip: 'Kurangi',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle,
+                              color: Colors.green),
+                          onPressed: () => favoriteCount.value++,
+                          tooltip: 'Tambah',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // ===== Baris 2: setState =====
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('setState',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$setStateCounter',
+                          style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline,
+                              color: Colors.orange),
+                          onPressed: () {
+                            if (setStateCounter > 0) {
+                              setState(() => setStateCounter--);
+                            }
+                          },
+                          tooltip: 'Kurangi (setState)',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle,
+                              color: Colors.orange),
+                          onPressed: () => setState(() => setStateCounter++),
+                          tooltip: 'Tambah (setState)',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // ===== GridView Course =====
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -423,7 +596,6 @@ class _CoursesTabState extends State<CoursesTab> {
     );
   }
 }
-
 class _CourseGridCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
