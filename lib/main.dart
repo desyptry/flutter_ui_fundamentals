@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
 import 'providers/course_state.dart';
+import 'models/course.dart';
 
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
@@ -54,7 +55,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   @override
   Widget build(BuildContext context) {
-    // ===== TAHAP 7: watch jumlah favorite dari Provider =====
     final favoritesCount = context.watch<CourseState>().favoriteCount;
 
     final pages = [
@@ -289,12 +289,13 @@ class _CoursesTabState extends State<CoursesTab> {
           );
         }
 
-        final allCourses = snapshot.data!['courses'] as List<dynamic>;
+        final rawCourses = snapshot.data!['courses'] as List<dynamic>;
+        final allCourses = rawCourses
+          .map((e) => Course.fromJson(e as Map<String, dynamic>))
+          .toList();
         final filtered = allCourses.where((c) {
-          final title = (c['title'] as String).toLowerCase();
-          return title.contains(searchQuery.toLowerCase());
+          return c.title.toLowerCase().contains(searchQuery.toLowerCase());
         }).toList();
-
         return Column(
           children: [
             // ===== Header: Identitas + Search =====
@@ -489,8 +490,8 @@ class _CoursesTabState extends State<CoursesTab> {
                     ),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final course = filtered[index] as Map<String, dynamic>;
-                      final title = course['title'] as String;
+                      final course = filtered[index];
+                      final title = course.title;
 
                       return _CourseGridCard(
                         course: course,
@@ -509,9 +510,9 @@ class _CoursesTabState extends State<CoursesTab> {
                             builder: (_) => AlertDialog(
                               title: Text(title),
                               content: Text(
-                                'Kode: ${course['code']}\n'
-                                'SKS: ${course['credits']}\n'
-                                'Status: ${course['status']}',
+                                'Kode: ${course.code}\n'
+                                'SKS: ${course.credits}\n'
+                                'Status: ${course.status}',
                               ),
                               actions: [
                                 TextButton(
@@ -537,7 +538,7 @@ class _CoursesTabState extends State<CoursesTab> {
 
 // ===== _CourseGridCard =====
 class _CourseGridCard extends StatelessWidget {
-  final Map<String, dynamic> course;
+  final Course course;              
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -549,9 +550,9 @@ class _CourseGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = course['status'] as String? ?? 'Belum';
-    final isDone = status == 'Selesai';
-    final isRunning = status == 'Berjalan';
+    // ===== TAHAP 8: pakai getter, bukan string comparison =====
+    final isDone = course.isDone;
+    final isRunning = course.isRunning;
     final statusColor =
         isDone ? Colors.green : isRunning ? Colors.orange : Colors.grey;
 
@@ -580,17 +581,14 @@ class _CourseGridCard extends StatelessWidget {
                       size: 20,
                     ),
                     const Spacer(),
-                    // ===== TAHAP 7: Consumer membatasi rebuild =====
                     Consumer<CourseState>(
                       builder: (context, state, child) {
-                        final title = course['title'] as String;
-                        final isFav = state.isFavorite(title);
+                        final isFav = state.isFavorite(course.title);
                         return IconButton(
                           onPressed: () {
-                            // read() untuk aksi — tidak listen
                             context
                                 .read<CourseState>()
-                                .toggleFavorite(title);
+                                .toggleFavorite(course.title);
                           },
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -606,7 +604,7 @@ class _CourseGridCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  course['title'] as String? ?? '-',
+                  course.title,        // ← TAHAP 8: langsung akses field
                   style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.bold),
                   maxLines: 2,
@@ -614,7 +612,7 @@ class _CourseGridCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${course['code']} • ${course['credits']} SKS',
+                  '${course.code} • ${course.credits} SKS',   // ← akses field
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
@@ -628,13 +626,12 @@ class _CourseGridCard extends StatelessWidget {
 
 // ===== Course Detail Page =====
 class CourseDetailPage extends StatelessWidget {
-  final Map<String, dynamic> course;
+  final Course course;               // ← TAHAP 8: pakai Course
   const CourseDetailPage({super.key, required this.course});
 
   @override
   Widget build(BuildContext context) {
-    final status = course['status'] as String? ?? 'Belum';
-    final statusColor = status == 'Selesai' ? Colors.green : Colors.orange;
+    final statusColor = course.isDone ? Colors.green : Colors.orange;
 
     return Scaffold(
       appBar: AppBar(
@@ -656,17 +653,17 @@ class CourseDetailPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(course['title'] as String? ?? '-',
+                    Text(course.title,         // ← akses field
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     const Divider(),
                     const SizedBox(height: 8),
-                    _infoRow('Kode', '${course['code'] ?? '-'}'),
+                    _infoRow('Kode', course.code),
                     const SizedBox(height: 8),
-                    _infoRow('SKS', '${course['credits'] ?? 0} SKS'),
+                    _infoRow('SKS', '${course.credits} SKS'),
                     const SizedBox(height: 8),
-                    _infoRow('Status', status, color: statusColor),
+                    _infoRow('Status', course.status, color: statusColor),
                   ],
                 ),
               ),
@@ -708,6 +705,7 @@ class CourseDetailPage extends StatelessWidget {
     );
   }
 }
+
 
 // ===== TAB 3: Favorites (TAHAP 7: pakai context.watch) =====
 class FavoritesTab extends StatelessWidget {
