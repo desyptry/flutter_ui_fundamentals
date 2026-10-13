@@ -1,29 +1,26 @@
-// Pertemuan 6 - Tahap 9: Service / Data Source
-import 'dart:convert';
+// Pertemuan 6 - Tahap 11: Provider untuk Async State
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
 
 // ===== Import dari folder =====
 import 'providers/course_state.dart';
 import 'models/course.dart';
-import 'services/course_service.dart';
 import 'repositories/course_repository.dart';
+import 'services/course_service.dart';
+
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
-// ===== Function Pembaca JSON (untuk kompatibilitas sementara) =====
-Future<Map<String, dynamic>> loadStudentData() async {
-  final jsonString =
-      await rootBundle.loadString('assets/data/students_data.json');
-  return jsonDecode(jsonString) as Map<String, dynamic>;
-}
-
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ===== TAHAP 11: Setup dependency injection =====
+  final service = CourseService();
+  final repository = CourseRepository(service);
+
   runApp(
     ChangeNotifierProvider(
-      create: (_) => CourseState(),
+      create: (_) => CourseProvider(repository)..loadCourses(),
       child: const MyApp(),
     ),
   );
@@ -56,8 +53,8 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   @override
   Widget build(BuildContext context) {
-    // ===== TAHAP 7: watch jumlah favorite dari Provider =====
-    final favoritesCount = context.watch<CourseState>().favoriteCount;
+    // ===== TAHAP 11: baca CourseProvider =====
+    final favoritesCount = context.watch<CourseProvider>().favoriteCount;
 
     final pages = [
       const HomeTab(),
@@ -72,7 +69,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
-          // ===== Counter favorite dari Provider (TAHAP 7) =====
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
@@ -256,18 +252,10 @@ class CoursesTab extends StatefulWidget {
 }
 
 class _CoursesTabState extends State<CoursesTab> {
-  late Future<Map<String, dynamic>> studentFuture;
   String searchQuery = '';
 
-  // ===== TAHAP 4: ValueNotifier untuk eksperimen =====
   final ValueNotifier<int> favoriteCount = ValueNotifier<int>(0);
   int setStateCounter = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    studentFuture = loadStudentData();
-  }
 
   @override
   void dispose() {
@@ -277,269 +265,284 @@ class _CoursesTabState extends State<CoursesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: studentFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Gagal: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red)),
-          );
-        }
+    // ===== TAHAP 11: baca CourseProvider =====
+    final provider = context.watch<CourseProvider>();
+    final allCourses = provider.courses;
+    final isLoading = provider.isLoading;
+    final error = provider.error;
 
-        // ===== TAHAP 8: Konversi List<dynamic> ke List<Course> =====
-        final rawCourses = snapshot.data!['courses'] as List<dynamic>;
-        final allCourses = rawCourses
-            .map((e) => Course.fromJson(e as Map<String, dynamic>))
-            .toList();
-
-        // Filter pakai field model
-        final filtered = allCourses.where((c) {
-          return c.title.toLowerCase().contains(searchQuery.toLowerCase());
-        }).toList();
-
-        return Column(
+    // ===== Loading =====
+    if (isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ===== Header: Identitas + Search =====
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Memuat data course...'),
+          ],
+        ),
+      );
+    }
+
+    // ===== Error =====
+    if (error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 12),
+              const Text('Gagal memuat data',
+                  style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text(error,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  context.read<CourseProvider>().loadCourses();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ===== Success =====
+    final filtered = allCourses.where((c) {
+      return c.title.toLowerCase().contains(searchQuery.toLowerCase());
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Colors.blueAccent,
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(studentName,
-                                style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold)),
-                            Text('NIM: $studentId',
-                                style: const TextStyle(
-                                    fontSize: 13, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  const CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.blueAccent,
+                    child: Icon(Icons.person, color: Colors.white),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    onChanged: (v) => setState(() => searchQuery = v),
-                    decoration: InputDecoration(
-                      hintText: 'Search courses...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(studentName,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('NIM: $studentId',
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.grey)),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 12),
+              TextField(
+                onChanged: (v) => setState(() => searchQuery = v),
+                decoration: InputDecoration(
+                  hintText: 'Search courses...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                ),
+              ),
+            ],
+          ),
+        ),
 
-            // ===== TAHAP 4: Kartu Eksperimen =====
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: Colors.yellow.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        // ===== Kartu Eksperimen Tahap 4 =====
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          color: Colors.yellow.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.science, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Text('Eksperimen Tahap 4',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Bandingkan rebuild: ValueNotifier vs setState',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    const Divider(),
-
-                    // Baris 1: ValueNotifier
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('ValueNotifier',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green)),
-                        ),
-                        const SizedBox(width: 8),
-                        ValueListenableBuilder<int>(
-                          valueListenable: favoriteCount,
-                          builder: (context, value, child) {
-                            return Text(
-                              '$value',
-                              style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green),
-                            );
-                          },
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline,
-                              color: Colors.green),
-                          onPressed: () {
-                            if (favoriteCount.value > 0) {
-                              favoriteCount.value--;
-                            }
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle,
-                              color: Colors.green),
-                          onPressed: () => favoriteCount.value++,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Baris 2: setState
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade100,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('setState',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange)),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$setStateCounter',
-                          style: const TextStyle(
-                              fontSize: 18,
+                    Icon(Icons.science, color: Colors.orange, size: 20),
+                    SizedBox(width: 8),
+                    Text('Eksperimen Tahap 4',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text('Bandingkan rebuild: ValueNotifier vs setState',
+                    style: TextStyle(fontSize: 11, color: Colors.grey)),
+                const Divider(),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('ValueNotifier',
+                          style: TextStyle(
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline,
-                              color: Colors.orange),
-                          onPressed: () {
-                            if (setStateCounter > 0) {
-                              setState(() => setStateCounter--);
-                            }
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle,
-                              color: Colors.orange),
-                          onPressed: () => setState(() => setStateCounter++),
-                        ),
-                      ],
+                              color: Colors.green)),
+                    ),
+                    const SizedBox(width: 8),
+                    ValueListenableBuilder<int>(
+                      valueListenable: favoriteCount,
+                      builder: (context, value, child) {
+                        return Text('$value',
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green));
+                      },
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: Colors.green),
+                      onPressed: () {
+                        if (favoriteCount.value > 0) {
+                          favoriteCount.value--;
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: Colors.green),
+                      onPressed: () => favoriteCount.value++,
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // ===== GridView Course =====
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns = constraints.maxWidth < 600
-                      ? 1
-                      : constraints.maxWidth < 840
-                          ? 2
-                          : 3;
-                  if (filtered.isEmpty) {
-                    return const Center(
-                      child: Text('Tidak ada course yang cocok',
-                          style: TextStyle(color: Colors.grey)),
-                    );
-                  }
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.5,
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('setState',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange)),
                     ),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final course = filtered[index];
-                      return _CourseGridCard(
-                        course: course,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  CourseDetailPage(course: course),
+                    const SizedBox(width: 8),
+                    Text('$setStateCounter',
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: Colors.orange),
+                      onPressed: () {
+                        if (setStateCounter > 0) {
+                          setState(() => setStateCounter--);
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: Colors.orange),
+                      onPressed: () => setState(() => setStateCounter++),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // ===== GridView =====
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth < 600
+                  ? 1
+                  : constraints.maxWidth < 840
+                      ? 2
+                      : 3;
+              if (filtered.isEmpty) {
+                return const Center(
+                  child: Text('Tidak ada course yang cocok',
+                      style: TextStyle(color: Colors.grey)),
+                );
+              }
+              return GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.5,
+                ),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final course = filtered[index];
+                  return _CourseGridCard(
+                    course: course,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CourseDetailPage(course: course),
+                        ),
+                      );
+                    },
+                    onLongPress: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: Text(course.title),
+                          content: Text(
+                            'Kode: ${course.code}\n'
+                            'SKS: ${course.credits}\n'
+                            'Status: ${course.status}',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Tutup'),
                             ),
-                          );
-                        },
-                        onLongPress: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: Text(course.title),
-                              content: Text(
-                                'Kode: ${course.code}\n'
-                                'SKS: ${course.credits}\n'
-                                'Status: ${course.status}',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Tutup'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                          ],
+                        ),
                       );
                     },
                   );
                 },
-              ),
-            ),
-          ],
-        );
-      },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
-// ===== _CourseGridCard (Tahap 8: pakai model Course) =====
+// ===== _CourseGridCard =====
 class _CourseGridCard extends StatelessWidget {
   final Course course;
   final VoidCallback onTap;
@@ -583,14 +586,14 @@ class _CourseGridCard extends StatelessWidget {
                       size: 20,
                     ),
                     const Spacer(),
-                    // ===== TAHAP 7: Consumer =====
-                    Consumer<CourseState>(
+                    // ===== TAHAP 11: pakai CourseProvider =====
+                    Consumer<CourseProvider>(
                       builder: (context, state, child) {
                         final isFav = state.isFavorite(course.title);
                         return IconButton(
                           onPressed: () {
                             context
-                                .read<CourseState>()
+                                .read<CourseProvider>()
                                 .toggleFavorite(course.title);
                           },
                           padding: EdgeInsets.zero,
@@ -606,18 +609,14 @@ class _CourseGridCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  course.title,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(course.title,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text(
-                  '${course.code} • ${course.credits} SKS',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                Text('${course.code} • ${course.credits} SKS',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),
@@ -627,7 +626,7 @@ class _CourseGridCard extends StatelessWidget {
   }
 }
 
-// ===== Course Detail Page (Tahap 8: pakai model Course) =====
+// ===== Course Detail Page =====
 class CourseDetailPage extends StatelessWidget {
   final Course course;
   const CourseDetailPage({super.key, required this.course});
@@ -709,13 +708,13 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-// ===== TAB 3: Favorites (Tahap 7: pakai context.watch) =====
+// ===== FavoritesTab =====
 class FavoritesTab extends StatelessWidget {
   const FavoritesTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<CourseState>();
+    final state = context.watch<CourseProvider>();
     final favorites = state.favorites;
 
     return Column(
@@ -726,11 +725,9 @@ class FavoritesTab extends StatelessWidget {
             children: [
               const Icon(Icons.favorite, color: Colors.red, size: 28),
               const SizedBox(width: 8),
-              Text(
-                'Favorites (${favorites.length})',
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text('Favorites (${favorites.length})',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -746,10 +743,8 @@ class FavoritesTab extends StatelessWidget {
                       Text('Belum ada course favorit',
                           style: TextStyle(color: Colors.grey)),
                       SizedBox(height: 6),
-                      Text(
-                        'Tap ikon hati di tab Courses.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
+                      Text('Tap ikon hati di tab Courses.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                 )
@@ -768,7 +763,7 @@ class FavoritesTab extends StatelessWidget {
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () {
                             context
-                                .read<CourseState>()
+                                .read<CourseProvider>()
                                 .toggleFavorite(title);
                           },
                           tooltip: 'Hapus dari favorit',
@@ -783,7 +778,7 @@ class FavoritesTab extends StatelessWidget {
   }
 }
 
-// ===== TAB 4: Feedback Form =====
+// ===== Feedback Form =====
 class FeedbackFormTab extends StatefulWidget {
   const FeedbackFormTab({super.key});
 
