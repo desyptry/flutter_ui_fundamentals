@@ -1,9 +1,3 @@
-// Pertemuan 6 - Tahap 8: Model Course
-// File: lib/models/course.dart
-
-const String studentName = 'Desy_Putri';
-const String studentId = '2415051002';
-
 class Course {
   final String code;
   final String title;
