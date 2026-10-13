@@ -1,24 +1,28 @@
-// Pertemuan 6 - Tahap 7: context.watch, context.read, dan Consumer
+// Pertemuan 6 - Tahap 9: Service / Data Source
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
+
+// ===== Import dari folder =====
 import 'providers/course_state.dart';
 import 'models/course.dart';
+import 'services/course_service.dart';
 
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
-// ===== Function Pembaca JSON =====
+// ===== Function Pembaca JSON (untuk kompatibilitas sementara) =====
 Future<Map<String, dynamic>> loadStudentData() async {
   final jsonString =
       await rootBundle.loadString('assets/data/students_data.json');
   return jsonDecode(jsonString) as Map<String, dynamic>;
 }
 
-void main() {
+void main() async {
+  // ===== WAJIB: inisialisasi binding dulu =====
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    // ===== TAHAP 6: ChangeNotifierProvider =====
     ChangeNotifierProvider(
       create: (_) => CourseState(),
       child: const MyApp(),
@@ -51,10 +55,9 @@ class AdaptiveShell extends StatefulWidget {
 class _AdaptiveShellState extends State<AdaptiveShell> {
   int currentIndex = 0;
 
-  // ===== TAHAP 7: favorites sekarang dari Provider, bukan lokal =====
-
   @override
   Widget build(BuildContext context) {
+    // ===== TAHAP 7: watch jumlah favorite dari Provider =====
     final favoritesCount = context.watch<CourseState>().favoriteCount;
 
     final pages = [
@@ -247,7 +250,6 @@ class _HomeMenuTile extends StatelessWidget {
 
 // ===== TAB 2: Courses =====
 class CoursesTab extends StatefulWidget {
-  // ===== TAHAP 7: tidak lagi terima props =====
   const CoursesTab({super.key});
 
   @override
@@ -289,13 +291,17 @@ class _CoursesTabState extends State<CoursesTab> {
           );
         }
 
+        // ===== TAHAP 8: Konversi List<dynamic> ke List<Course> =====
         final rawCourses = snapshot.data!['courses'] as List<dynamic>;
         final allCourses = rawCourses
-          .map((e) => Course.fromJson(e as Map<String, dynamic>))
-          .toList();
+            .map((e) => Course.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        // Filter pakai field model
         final filtered = allCourses.where((c) {
           return c.title.toLowerCase().contains(searchQuery.toLowerCase());
         }).toList();
+
         return Column(
           children: [
             // ===== Header: Identitas + Search =====
@@ -344,7 +350,7 @@ class _CoursesTabState extends State<CoursesTab> {
               ),
             ),
 
-            // ===== TAHAP 4: Kartu Eksperimen (ValueNotifier vs setState) =====
+            // ===== TAHAP 4: Kartu Eksperimen =====
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               color: Colors.yellow.shade50,
@@ -491,8 +497,6 @@ class _CoursesTabState extends State<CoursesTab> {
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final course = filtered[index];
-                      final title = course.title;
-
                       return _CourseGridCard(
                         course: course,
                         onTap: () {
@@ -508,7 +512,7 @@ class _CoursesTabState extends State<CoursesTab> {
                           showDialog(
                             context: context,
                             builder: (_) => AlertDialog(
-                              title: Text(title),
+                              title: Text(course.title),
                               content: Text(
                                 'Kode: ${course.code}\n'
                                 'SKS: ${course.credits}\n'
@@ -536,9 +540,9 @@ class _CoursesTabState extends State<CoursesTab> {
   }
 }
 
-// ===== _CourseGridCard =====
+// ===== _CourseGridCard (Tahap 8: pakai model Course) =====
 class _CourseGridCard extends StatelessWidget {
-  final Course course;              
+  final Course course;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -550,7 +554,6 @@ class _CourseGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ===== TAHAP 8: pakai getter, bukan string comparison =====
     final isDone = course.isDone;
     final isRunning = course.isRunning;
     final statusColor =
@@ -581,6 +584,7 @@ class _CourseGridCard extends StatelessWidget {
                       size: 20,
                     ),
                     const Spacer(),
+                    // ===== TAHAP 7: Consumer =====
                     Consumer<CourseState>(
                       builder: (context, state, child) {
                         final isFav = state.isFavorite(course.title);
@@ -604,7 +608,7 @@ class _CourseGridCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  course.title,        // ← TAHAP 8: langsung akses field
+                  course.title,
                   style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.bold),
                   maxLines: 2,
@@ -612,7 +616,7 @@ class _CourseGridCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${course.code} • ${course.credits} SKS',   // ← akses field
+                  '${course.code} • ${course.credits} SKS',
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
@@ -624,9 +628,9 @@ class _CourseGridCard extends StatelessWidget {
   }
 }
 
-// ===== Course Detail Page =====
+// ===== Course Detail Page (Tahap 8: pakai model Course) =====
 class CourseDetailPage extends StatelessWidget {
-  final Course course;               // ← TAHAP 8: pakai Course
+  final Course course;
   const CourseDetailPage({super.key, required this.course});
 
   @override
@@ -653,7 +657,7 @@ class CourseDetailPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(course.title,         // ← akses field
+                    Text(course.title,
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
@@ -706,15 +710,12 @@ class CourseDetailPage extends StatelessWidget {
   }
 }
 
-
-// ===== TAB 3: Favorites (TAHAP 7: pakai context.watch) =====
+// ===== TAB 3: Favorites (Tahap 7: pakai context.watch) =====
 class FavoritesTab extends StatelessWidget {
-  // ===== TAHAP 7: tidak lagi terima props =====
   const FavoritesTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // ===== watch() untuk listen perubahan favorites =====
     final state = context.watch<CourseState>();
     final favorites = state.favorites;
 
@@ -767,7 +768,6 @@ class FavoritesTab extends StatelessWidget {
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () {
-                            // read() untuk aksi
                             context
                                 .read<CourseState>()
                                 .toggleFavorite(title);
