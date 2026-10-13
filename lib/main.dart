@@ -9,8 +9,6 @@ import 'screens/adaptive_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ===== Setup dependency injection sederhana =====
   final service = CourseService();
   final repository = CourseRepository(service);
 

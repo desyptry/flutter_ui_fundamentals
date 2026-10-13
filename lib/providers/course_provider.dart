@@ -21,7 +21,7 @@ class CourseProvider extends ChangeNotifier {
     } else {
       favorites.add(id);
     }
-    notifyListeners();
+    // notifyListeners();
   }
 
   int get favoriteCount => favorites.length;
