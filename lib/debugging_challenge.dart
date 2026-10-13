@@ -1,5 +1,3 @@
-// Pertemuan 5 - Tahap 16: Debugging Challenge
-// File terpisah untuk eksperimen 4 kasus debugging.
 import 'package:flutter/material.dart';
 
 const String studentName = 'Desy_Putri';

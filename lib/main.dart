@@ -1,4 +1,3 @@
-// Pertemuan 6 - Tahap 12: Refactor Struktur Folder
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

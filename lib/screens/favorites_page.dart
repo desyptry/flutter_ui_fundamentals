@@ -1,4 +1,3 @@
-// lib/screens/favorites_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/course_provider.dart';
