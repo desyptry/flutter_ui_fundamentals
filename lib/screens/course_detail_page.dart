@@ -1,6 +1,9 @@
+// lib/screens/course_detail_page.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../data/student_constants.dart';
 import '../models/course.dart';
+import '../providers/course_provider.dart';
 import '../widgets/info_row.dart';
 
 class CourseDetailPage extends StatelessWidget {
@@ -11,17 +14,34 @@ class CourseDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = course.isDone ? Colors.green : Colors.orange;
 
+    // ===== TAHAP 13: baca status favorite dari Provider =====
+    final isFav = context.watch<CourseProvider>().isFavorite(course.title);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Course Detail'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        // ===== TAHAP 13: ikon hati di AppBar =====
+        actions: [
+          IconButton(
+            onPressed: () {
+              context.read<CourseProvider>().toggleFavorite(course.title);
+            },
+            icon: Icon(
+              isFav ? Icons.favorite : Icons.favorite_border,
+              color: isFav ? Colors.red : Colors.white,
+            ),
+            tooltip: isFav ? 'Hapus dari favorit' : 'Tambah ke favorit',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ===== Card: Info Course =====
             Card(
               elevation: 3,
               shape: RoundedRectangleBorder(
@@ -49,7 +69,10 @@ class CourseDetailPage extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
+
+            // ===== Card: Identitas Mahasiswa =====
             Card(
               child: ListTile(
                 leading: const CircleAvatar(
@@ -60,7 +83,33 @@ class CourseDetailPage extends StatelessWidget {
                 subtitle: Text('NIM: $studentId'),
               ),
             ),
+
             const SizedBox(height: 20),
+
+            // ===== TAHAP 13: Tombol Favorite besar =====
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  context.read<CourseProvider>().toggleFavorite(course.title);
+                },
+                icon: Icon(
+                  isFav ? Icons.favorite : Icons.favorite_border,
+                ),
+                label: Text(
+                  isFav ? 'Hapus dari Favorit' : 'Tambahkan ke Favorit',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isFav ? Colors.red : Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ===== Tombol Kembali =====
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
