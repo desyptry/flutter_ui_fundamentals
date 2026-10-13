@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'providers/course_state.dart';
 import 'models/course.dart';
 import 'services/course_service.dart';
-
+import 'repositories/course_repository.dart';
 const String studentName = 'Desy_Putri';
 const String studentId = '2415051002';
 
@@ -19,8 +19,7 @@ Future<Map<String, dynamic>> loadStudentData() async {
   return jsonDecode(jsonString) as Map<String, dynamic>;
 }
 
-void main() async {
-  // ===== WAJIB: inisialisasi binding dulu =====
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
     ChangeNotifierProvider(
