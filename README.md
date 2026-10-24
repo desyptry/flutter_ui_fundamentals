@@ -152,3 +152,36 @@ Struktur folder mengikuti prinsip separation of concerns.
 Setiap layer hanya tahu layer di bawahnya (dependency direction satu arah).
 
 © 2026 — Desy_Putri | 2415051002
+## REST API Endpoint
+
+Berikut endpoint REST yang digunakan untuk integrasi aplikasi Flutter dengan backend.
+
+| Properti | Nilai |
+|---|---|
+| **Base URL** | `https://course-api-pearl.vercel.app` |
+| **Endpoint** | `/courses` |
+| **Method** | `GET` (Read), `POST` (Create), `PUT/PATCH` (Update), `DELETE` (Delete) |
+| **Status Code (GET)** | `200 OK` |
+| **Field JSON** | `id` (int), `code` (String), `title` (String), `credits` (int), `status` (String), `created_at` (String/timestamp) |
+
+**Contoh Response (GET /courses):**
+
+```json
+[
+  {
+    "id": 2,
+    "code": "MOB02",
+    "title": "Dart Fundamentals",
+    "credits": 3,
+    "status": "active",
+    "created_at": "2026-10-21T03:28:09.128977Z"
+  },
+  {
+    "id": 3,
+    "code": "MOB03",
+    "title": "Flutter Widgets & Layout",
+    "credits": 3,
+    "status": "planned",
+    "created_at": "2026-10-21T03:28:09.361747Z"
+  }
+]
