@@ -1,3 +1,4 @@
+// lib/widgets/course_card.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/course.dart';
@@ -18,9 +19,9 @@ class CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDone = course.isDone;
-    final isRunning = course.isRunning;
+    final isActive = course.isActive;
     final statusColor =
-        isDone ? Colors.green : isRunning ? Colors.orange : Colors.grey;
+        isDone ? Colors.green : isActive ? Colors.blue : Colors.orange;
 
     return GestureDetector(
       onLongPress: onLongPress,
@@ -40,7 +41,7 @@ class CourseCard extends StatelessWidget {
                     Icon(
                       isDone
                           ? Icons.check_circle
-                          : isRunning
+                          : isActive
                               ? Icons.play_circle
                               : Icons.radio_button_unchecked,
                       color: statusColor,
@@ -49,12 +50,13 @@ class CourseCard extends StatelessWidget {
                     const Spacer(),
                     Consumer<CourseProvider>(
                       builder: (context, state, child) {
-                        final isFav = state.isFavorite(course.title);
+                        // Gunakan code sebagai kunci favorite (bukan title)
+                        final isFav = state.isFavorite(course.code);
                         return IconButton(
                           onPressed: () {
                             context
                                 .read<CourseProvider>()
-                                .toggleFavorite(course.title);
+                                .toggleFavorite(course.code);
                           },
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),

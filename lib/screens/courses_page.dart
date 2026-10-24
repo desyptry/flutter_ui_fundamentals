@@ -91,10 +91,10 @@ class _CoursesPageState extends State<CoursesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(studentName,
+                        Text(studentName,
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
-                        const Text('NIM: $studentId',
+                        Text('NIM: $studentId',
                             style: TextStyle(
                                 fontSize: 13, color: Colors.grey)),
                       ],

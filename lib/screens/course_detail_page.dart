@@ -1,4 +1,3 @@
-// lib/screens/course_detail_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/student_constants.dart';
@@ -12,9 +11,12 @@ class CourseDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = course.isDone ? Colors.green : Colors.orange;
+    final statusColor = course.isDone
+    ? Colors.green
+    : course.isActive
+        ? Colors.blue
+        : Colors.orange;
 
-    // ===== TAHAP 13: baca status favorite dari Provider =====
     final isFav = context.watch<CourseProvider>().isFavorite(course.title);
 
     return Scaffold(
@@ -22,7 +24,6 @@ class CourseDetailPage extends StatelessWidget {
         title: const Text('Course Detail'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        // ===== TAHAP 13: ikon hati di AppBar =====
         actions: [
           IconButton(
             onPressed: () {
@@ -71,8 +72,6 @@ class CourseDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
-            // ===== Card: Identitas Mahasiswa =====
             Card(
               child: ListTile(
                 leading: const CircleAvatar(
@@ -85,8 +84,6 @@ class CourseDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
-            // ===== TAHAP 13: Tombol Favorite besar =====
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -108,8 +105,6 @@ class CourseDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 12),
-
-            // ===== Tombol Kembali =====
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
