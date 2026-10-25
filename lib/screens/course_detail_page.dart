@@ -10,6 +10,57 @@ class CourseDetailPage extends StatelessWidget {
   final Course course;
   const CourseDetailPage({super.key, required this.course});
 
+  Future<void> _confirmDelete(BuildContext context, Course course) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Course?'),
+        content: Text(
+          'Course "${course.title}" (${course.code}) akan dihapus permanen. Lanjutkan?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // 2. Panggil provider untuk delete
+    final success = await context
+        .read<CourseProvider>()
+        .deleteCourse(course.id!);
+
+    if (!context.mounted) return;
+
+    // 3. Tampilkan feedback
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Course berhasil dihapus!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context); // kembali ke list
+    } else {
+      final error = context.read<CourseProvider>().error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal: ${error ?? "Unknown error"}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final statusColor = course.isDone
@@ -43,7 +94,11 @@ class CourseDetailPage extends StatelessWidget {
               }
             },
           ),
-          
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Hapus Course',
+            onPressed: () => _confirmDelete(context, course),
+          ),
           IconButton(
             onPressed: () {
               context.read<CourseProvider>().toggleFavorite(course.code);

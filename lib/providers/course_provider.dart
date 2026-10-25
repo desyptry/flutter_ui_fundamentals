@@ -80,4 +80,23 @@ class CourseProvider extends ChangeNotifier {
       return false;
     }
   }
+  Future<bool> deleteCourse(int id) async {
+    isSaving = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await repository.deleteCourse(id);
+      // Refresh list setelah delete
+      courses = await repository.getCourses();
+      isSaving = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString();
+      isSaving = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }
