@@ -5,6 +5,7 @@ import '../providers/course_provider.dart';
 import '../widgets/course_card.dart';
 import 'course_detail_page.dart';
 import '../widgets/error_view.dart';
+import 'course_form_page.dart';
 
 class CoursesPage extends StatefulWidget {
   const CoursesPage({super.key});
@@ -133,7 +134,35 @@ Widget build(BuildContext context) {
             ],
           ),
         ),
-
+        // Setelah Padding header (search field), tambahkan:
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CourseFormPage(),
+                  ),
+                );
+                // Kalau berhasil, refresh data (opsional — createCourse sudah refresh)
+                if (result == true && mounted) {
+                  // Data sudah di-refresh di Provider
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Tambah Course'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade50,
+                foregroundColor: Colors.blue.shade700,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
