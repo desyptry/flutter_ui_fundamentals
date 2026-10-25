@@ -4,6 +4,7 @@ import '../data/student_constants.dart';
 import '../providers/course_provider.dart';
 import '../widgets/course_card.dart';
 import 'course_detail_page.dart';
+import '../widgets/error_view.dart';
 
 class CoursesPage extends StatefulWidget {
   const CoursesPage({super.key});
@@ -15,62 +16,76 @@ class CoursesPage extends StatefulWidget {
 class _CoursesPageState extends State<CoursesPage> {
   String searchQuery = '';
 
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<CourseProvider>();
-    final allCourses = provider.courses;
-    final isLoading = provider.isLoading;
-    final error = provider.error;
+@override
+Widget build(BuildContext context) {
+  final provider = context.watch<CourseProvider>();
+  final allCourses = provider.courses;
+  final isLoading = provider.isLoading;
+  final error = provider.error;
 
-    // ===== Loading state =====
-    if (isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Memuat data course...'),
-          ],
-        ),
-      );
-    }
+  if (isLoading) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Memuat data course...'),
+        ],
+      ),
+    );
+  }
 
-    // ===== Error state =====
-    if (error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 12),
-              const Text('Gagal memuat data',
-                  style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Text(error,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  context.read<CourseProvider>().loadCourses();
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Coba Lagi'),
-              ),
-            ],
+  if (error != null) {
+    return ErrorView(
+      message: error,
+      onRetry: () {
+        context.read<CourseProvider>().loadCourses();
+      },
+    );
+  }
+
+  if (allCourses.isEmpty) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.inbox_outlined,
+            size: 80,
+            color: Colors.grey,
           ),
-        ),
-      );
-    }
+          const SizedBox(height: 16),
+          const Text(
+            'Data course belum tersedia',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Tekan tombol di bawah untuk memuat ulang.',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              context.read<CourseProvider>().loadCourses();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Muat Ulang'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    // ===== Success state =====
-    final filtered = allCourses.where((c) {
-      return c.title.toLowerCase().contains(searchQuery.toLowerCase());
-    }).toList();
+  final filtered = allCourses.where((c) {
+    return c.title.toLowerCase().contains(searchQuery.toLowerCase());
+  }).toList();
+
+
 
     return Column(
       children: [
@@ -119,7 +134,6 @@ class _CoursesPageState extends State<CoursesPage> {
           ),
         ),
 
-        // ===== GridView Course =====
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
