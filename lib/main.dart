@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_api_service.dart';
+
 import 'screens/adaptive_shell.dart';
 
 const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
