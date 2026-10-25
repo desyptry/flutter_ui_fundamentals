@@ -4,6 +4,7 @@ import '../data/student_constants.dart';
 import '../models/course.dart';
 import '../providers/course_provider.dart';
 import '../widgets/info_row.dart';
+import 'course_form_page.dart';
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -12,12 +13,12 @@ class CourseDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = course.isDone
-    ? Colors.green
-    : course.isActive
-        ? Colors.blue
-        : Colors.orange;
+        ? Colors.green
+        : course.isActive
+            ? Colors.blue
+            : Colors.orange;
 
-    final isFav = context.watch<CourseProvider>().isFavorite(course.title);
+    final isFav = context.watch<CourseProvider>().isFavorite(course.code);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,15 +26,32 @@ class CourseDetailPage extends StatelessWidget {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Course',
+            onPressed: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CourseFormPage(initialCourse: course),
+                ),
+              );
+              if (result == true && context.mounted) {
+                // Kembali ke list agar ter-refresh
+                Navigator.pop(context);
+              }
+            },
+          ),
+          
           IconButton(
             onPressed: () {
-              context.read<CourseProvider>().toggleFavorite(course.title);
+              context.read<CourseProvider>().toggleFavorite(course.code);
             },
             icon: Icon(
               isFav ? Icons.favorite : Icons.favorite_border,
               color: isFav ? Colors.red : Colors.white,
             ),
-            tooltip: isFav ? 'Hapus dari favorit' : 'Tambah ke favorit',
           ),
         ],
       ),
@@ -66,12 +84,20 @@ class CourseDetailPage extends StatelessWidget {
                         label: 'Status',
                         value: course.status,
                         color: statusColor),
+                    if (course.createdAt != null) ...[
+                      const SizedBox(height: 8),
+                      InfoRow(
+                          label: 'Dibuat',
+                          value: course.createdAt!.substring(0, 10)),
+                    ],
                   ],
                 ),
               ),
             ),
 
             const SizedBox(height: 20),
+
+            
             Card(
               child: ListTile(
                 leading: const CircleAvatar(
@@ -84,20 +110,26 @@ class CourseDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
+
+            
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  context.read<CourseProvider>().toggleFavorite(course.title);
+                onPressed: () async {
+                  final result = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CourseFormPage(initialCourse: course),
+                    ),
+                  );
+                  if (result == true && context.mounted) {
+                    Navigator.pop(context);
+                  }
                 },
-                icon: Icon(
-                  isFav ? Icons.favorite : Icons.favorite_border,
-                ),
-                label: Text(
-                  isFav ? 'Hapus dari Favorit' : 'Tambahkan ke Favorit',
-                ),
+                icon: const Icon(Icons.edit),
+                label: const Text('Edit Course'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isFav ? Colors.red : Colors.blue,
+                  backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -105,6 +137,8 @@ class CourseDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 12),
+
+            
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(

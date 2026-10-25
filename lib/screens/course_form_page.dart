@@ -4,7 +4,8 @@ import '../models/course.dart';
 import '../providers/course_provider.dart';
 
 class CourseFormPage extends StatefulWidget {
-  const CourseFormPage({super.key});
+  final Course? initialCourse;  
+  const CourseFormPage({super.key, this.initialCourse});
 
   @override
   State<CourseFormPage> createState() => _CourseFormPageState();
@@ -12,10 +13,22 @@ class CourseFormPage extends StatefulWidget {
 
 class _CourseFormPageState extends State<CourseFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _codeCtrl = TextEditingController();
-  final _titleCtrl = TextEditingController();
-  final _creditsCtrl = TextEditingController();
-  String _status = 'planned';
+  late final TextEditingController _codeCtrl;
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _creditsCtrl;
+  late String _status;
+
+  bool get isEditMode => widget.initialCourse != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.initialCourse;
+    _codeCtrl = TextEditingController(text: c?.code ?? '');
+    _titleCtrl = TextEditingController(text: c?.title ?? '');
+    _creditsCtrl = TextEditingController(text: c?.credits.toString() ?? '');
+    _status = c?.status ?? 'planned';
+  }
 
   @override
   void dispose() {
@@ -36,18 +49,25 @@ class _CourseFormPageState extends State<CourseFormPage> {
     );
 
     final provider = context.read<CourseProvider>();
-    final success = await provider.createCourse(course);
+    final bool success;
+
+    if (isEditMode) {
+      success = await provider.updateCourse(widget.initialCourse!.id!, course);
+    } else {
+      success = await provider.createCourse(course);
+    }
 
     if (!mounted) return;
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Course berhasil ditambahkan!'),
+        SnackBar(
+          content: Text(
+              isEditMode ? 'Course berhasil diupdate!' : 'Course berhasil ditambahkan!'),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context, true); // kembali dengan result true
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -64,7 +84,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Course'),
+        title: Text(isEditMode ? 'Edit Course' : 'Tambah Course'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -75,20 +95,28 @@ class _CourseFormPageState extends State<CourseFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              
               const Text('Kode Mata Kuliah',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _codeCtrl,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                readOnly: isEditMode, 
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   hintText: 'Contoh: MOB06',
+                  filled: isEditMode,
+                  fillColor: isEditMode ? Colors.grey.shade200 : null,
+                  helperText: isEditMode
+                      ? 'Kode tidak dapat diubah saat edit'
+                      : null,
                 ),
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Kode wajib diisi' : null,
               ),
               const SizedBox(height: 16),
 
+              
               const Text('Judul Course',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
@@ -103,6 +131,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
               ),
               const SizedBox(height: 16),
 
+              
               const Text('SKS',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
@@ -123,6 +152,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
               ),
               const SizedBox(height: 16),
 
+              
               const Text('Status',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
@@ -140,6 +170,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
               ),
               const SizedBox(height: 32),
 
+              
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -153,8 +184,12 @@ class _CourseFormPageState extends State<CourseFormPage> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.save),
-                  label: Text(isSaving ? 'Menyimpan...' : 'Simpan'),
+                      : Icon(isEditMode ? Icons.save : Icons.add),
+                  label: Text(isSaving
+                      ? 'Menyimpan...'
+                      : isEditMode
+                          ? 'Simpan Perubahan'
+                          : 'Tambah Course'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: Colors.blue,
