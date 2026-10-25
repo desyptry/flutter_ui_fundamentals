@@ -157,7 +157,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: _status,
+                initialValue: _status,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                 ),
