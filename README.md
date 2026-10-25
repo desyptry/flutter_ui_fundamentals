@@ -185,3 +185,19 @@ Berikut endpoint REST yang digunakan untuk integrasi aplikasi Flutter dengan bac
     "created_at": "2026-10-21T03:28:09.361747Z"
   }
 ]
+---
+
+## Database Schema
+
+**Tabel:** `courses` (Supabase/PostgreSQL)
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint, primary key | Auto-increment |
+| `code` | text, unique, not null | Kode MK |
+| `title` | text, not null | Judul course |
+| `credits` | int, default 1 | Jumlah SKS |
+| `status` | text, check | `planned`/`active`/`done` |
+| `created_at` | timestamptz | Timestamp otomatis |
+
+**RLS Policy:** `Allow all for praktikum` (hanya untuk praktikum, bukan produksi).
