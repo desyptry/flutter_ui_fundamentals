@@ -5,22 +5,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
-import 'services/course_supabase_service.dart'; // ← IMPORT SUPABASE
+import 'services/course_supabase_service.dart';
 import 'screens/adaptive_shell.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
   );
 
-  
-  final dataSource = CourseSupabaseService();         
-  
+  final dataSource = CourseSupabaseService(); 
   final repository = CourseRepository(dataSource);
 
   runApp(

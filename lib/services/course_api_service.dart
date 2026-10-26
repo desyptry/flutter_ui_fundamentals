@@ -10,7 +10,7 @@ class CourseApiService implements CourseDataSource {
 
   @override
   Future<List<Course>> getCourses() async {
-    final response = await http.get(Uri.parse('$baseUrl/courses'));
+    final response = await http.get(Uri.parse('$baseUrl/courses_salah'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body) as List;
