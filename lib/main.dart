@@ -6,6 +6,7 @@ import 'config/supabase_config.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_api_service.dart';
+import 'services/course_supabase_service.dart';   // ← TETAP ADA
 import 'screens/adaptive_shell.dart';
 
 const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
@@ -13,11 +14,13 @@ const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
   );
 
+  
   final apiService = CourseApiService(apiBaseUrl);
   final repository = CourseRepository(apiService);
 
