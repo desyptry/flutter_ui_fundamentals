@@ -8,6 +8,7 @@ import 'repositories/course_repository.dart';
 import 'services/course_api_service.dart';
 import 'services/course_supabase_service.dart';   // ← TETAP ADA
 import 'screens/adaptive_shell.dart';
+import 'services/course_supabase_service.dart'; 
 
 const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 
@@ -20,7 +21,38 @@ void main() async {
     anonKey: supabaseAnonKey,
   );
 
-  
+  // ===== UJI SEMENTARA: DELETE di Supabase =====
+  try {
+    final supabaseService = CourseSupabaseService();
+    
+    // Ambil list dulu
+    final before = await supabaseService.getCourses();
+    debugPrint('=====================================');
+    debugPrint('DELETE TEST');
+    debugPrint('Total course sebelum: ${before.length}');
+    
+    if (before.isEmpty) {
+      debugPrint('✗ Tidak ada course untuk dihapus');
+    } else {
+      final target = before.last;
+      debugPrint('Target: [${target.id}] ${target.title}');
+      
+      // Delete
+      await supabaseService.deleteCourse(target.id!);
+      debugPrint('✓ DELETE BERHASIL');
+      
+      // Verifikasi
+      final after = await supabaseService.getCourses();
+      debugPrint('Total course sesudah: ${after.length}');
+      final stillExists = after.any((c) => c.id == target.id);
+      debugPrint('Target masih ada? ${stillExists ? "YA (gagal)" : "TIDAK (sukses)"}');
+    }
+    debugPrint('=====================================');
+  } catch (e) {
+    debugPrint('✗ Error: $e');
+  }
+  // =============================================
+
   final apiService = CourseApiService(apiBaseUrl);
   final repository = CourseRepository(apiService);
 
