@@ -13,12 +13,11 @@ const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
- await Supabase.initialize(
-  url: supabaseUrl,
-  publishableKey: supabaseAnonKey,
-);
-  debugPrint('✓ Supabase initialized');
-  
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
+
   final apiService = CourseApiService(apiBaseUrl);
   final repository = CourseRepository(apiService);
 
