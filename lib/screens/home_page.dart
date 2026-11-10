@@ -1,133 +1,119 @@
 // lib/screens/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/student_constants.dart';
+import '../models/course.dart';
 import '../providers/course_provider.dart';
+import '../services/profile_service.dart';
 import '../widgets/home_menu_tile.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<CourseProvider>();
-    final totalCourses = provider.courses.length;
-    final totalFavorites = provider.favoriteCount;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          const CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.blueAccent,
-            child: Icon(Icons.school, size: 56, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          const Text('Course Explorer v2',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text('$studentId - $studentName',
-              style: const TextStyle(fontSize: 14, color: Colors.grey)),
-
-          const SizedBox(height: 24),
-
-          Row(
-            children: [
-              // Card 1: Courses
-              Expanded(
-                child: _SummaryCard(
-                  label: 'Courses',
-                  value: '$totalCourses',
-                  icon: Icons.school,
-                  color: Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Card 2: Favorites
-              Expanded(
-                child: _SummaryCard(
-                  label: 'Favorites',
-                  value: '$totalFavorites',
-                  icon: Icons.favorite,
-                  color: Colors.red,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 12),
-
-          const HomeMenuTile(
-            icon: Icons.aspect_ratio,
-            title: 'Responsive Layout',
-            subtitle: 'Breakpoint compact / medium / expanded',
-          ),
-          const HomeMenuTile(
-            icon: Icons.navigation,
-            title: 'Navigation',
-            subtitle: 'Navigator.push, pop, passing data',
-          ),
-          const HomeMenuTile(
-            icon: Icons.touch_app,
-            title: 'Interaction',
-            subtitle: 'InkWell, GestureDetector, favorite',
-          ),
-          const HomeMenuTile(
-            icon: Icons.storage,
-            title: 'State Management',
-            subtitle: 'Provider + Repository + Service',
-          ),
-        ],
-      ),
-    );
-  }
+  State<HomePage> createState() => _HomePageState();
 }
 
+class _HomePageState extends State<HomePage> {
+  late final Future<UserProfile?> _profileFuture;
 
-class _SummaryCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _SummaryCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = ProfileService().getMyProfile();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 6),
-                Text(label,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: color)),
-          ],
-        ),
-      ),
+    return FutureBuilder<UserProfile?>(
+      future: _profileFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return const Center(child: Text('Gagal memuat profil'));
+        }
+
+        final profile = snapshot.data!;
+        final courseProvider = context.watch<CourseProvider>();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ===== Kartu Identitas (Nama, Email, Role) =====
+              Card(
+                elevation: 2,
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                  title: Text(profile.name.isEmpty ? profile.email : profile.name),
+                  subtitle: Text('${profile.email} • ${profile.role.toUpperCase()}'),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ===== Tombol Berdasarkan Role =====
+              // Hanya owner/admin yang bisa menambah course
+              if (profile.isOwner || profile.isAdmin)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Navigasi ke halaman form course (jika ada)
+                      // Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseFormPage()));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Fitur Tambah Course hanya untuk Owner/Admin')),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Tambah Course Baru'),
+                  ),
+                ),
+              
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              // ===== Menu / Konten Aplikasi =====
+              const Text(
+                'Course Explorer',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Selamat datang, ${profile.name.isEmpty ? profile.email : profile.name}!',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              
+              const HomeMenuTile(
+                icon: Icons.aspect_ratio,
+                title: 'Responsive Layout',
+                subtitle: 'Breakpoint compact / medium / expanded',
+              ),
+              const HomeMenuTile(
+                icon: Icons.navigation,
+                title: 'Navigation',
+                subtitle: 'Navigator.push, pop, passing data',
+              ),
+              const HomeMenuTile(
+                icon: Icons.touch_app,
+                title: 'Interaction',
+                subtitle: 'InkWell, GestureDetector, favorite',
+              ),
+              const HomeMenuTile(
+                icon: Icons.feedback,
+                title: 'Feedback',
+                subtitle: 'Form + validasi + SnackBar/Dialog',
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

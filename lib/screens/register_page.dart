@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
-import 'adaptive_shell.dart'; // Sesuaikan dengan nama shell di project ini
+import 'adaptive_shell.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -16,6 +16,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
   final _confirmC = TextEditingController();
+  final _nameC = TextEditingController(); // ← Controller Nama
+  String _role = 'seeker'; // ← State Role
   bool _loading = false;
 
   @override
@@ -23,6 +25,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailC.dispose();
     _passC.dispose();
     _confirmC.dispose();
+    _nameC.dispose();
     super.dispose();
   }
 
@@ -38,6 +41,8 @@ class _RegisterPageState extends State<RegisterPage> {
       final res = await AuthService.instance.register(
         email: _emailC.text.trim(),
         password: _passC.text,
+        name: _nameC.text.trim(),
+        role: _role,
       );
       if (!mounted) return;
 
@@ -81,6 +86,22 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                controller: _nameC,
+                decoration: const InputDecoration(labelText: 'Nama', border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _role,
+                decoration: const InputDecoration(labelText: 'Daftar sebagai', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 'seeker', child: Text('Pencari Kursus')),
+                  DropdownMenuItem(value: 'owner', child: Text('Pembuat Kursus')),
+                ],
+                onChanged: (v) => setState(() => _role = v ?? 'seeker'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
                 controller: _passC,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
@@ -95,8 +116,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: _confirmC,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: 'Konfirmasi Password', border: OutlineInputBorder()),
-                validator: (v) =>
-                    v != _passC.text ? 'Password tidak sama' : null,
+                validator: (v) => v != _passC.text ? 'Password tidak sama' : null,
               ),
               const SizedBox(height: 24),
               FilledButton(

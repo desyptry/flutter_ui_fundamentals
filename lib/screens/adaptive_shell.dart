@@ -5,6 +5,8 @@ import 'home_page.dart';
 import 'courses_page.dart';
 import 'favorites_page.dart';
 import 'feedback_page.dart';
+import '../services/auth_service.dart';
+import 'login_page.dart';
 
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({super.key});
@@ -33,6 +35,18 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              await AuthService.instance.logout();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
